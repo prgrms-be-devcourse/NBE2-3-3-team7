@@ -1,60 +1,29 @@
 package com.project.popupmarket.scheduler;
 
-import com.project.popupmarket.entity.QReceipts;
-import com.project.popupmarket.entity.QStagingPayment;
-import com.project.popupmarket.entity.Receipts;
-import com.project.popupmarket.enums.ReservationStatus;
-import com.querydsl.jpa.impl.JPADeleteClause;
-import com.querydsl.jpa.impl.JPAQuery;
+import com.project.popupmarket.repository.ReceiptsQueryDslRepositoryImpl;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
-
+@Slf4j
 @Service
 public class ReceiptsScheduler {
 
-    private static final Logger log = LoggerFactory.getLogger(ReceiptsScheduler.class);
+    private final ReceiptsQueryDslRepositoryImpl receiptsQueryDslRepositoryImpl;
     @PersistenceContext
     private EntityManager em;
+
+    public ReceiptsScheduler(ReceiptsQueryDslRepositoryImpl receiptsQueryDslRepositoryImpl) {
+        this.receiptsQueryDslRepositoryImpl = receiptsQueryDslRepositoryImpl;
+    }
 
     @Transactional
     @Scheduled(cron = "0 0 0 * * ?")
     public void rentalPlaceDailyChangeStatus() {
-        QReceipts qReceipt = QReceipts.receipts;
-        JPAQuery<Receipts> query = new JPAQuery<>(em);
-
-        LocalDate today = LocalDate.now();
-
-        List<Receipts> receipts = query.select(qReceipt).from(qReceipt)
-                .where(qReceipt.startDate.goe(today)
-                        .and(qReceipt.reservationStatus.eq(ReservationStatus.COMPLETED)))
-                .fetch();
-
-        receipts.forEach(receipt -> receipt.setReservationStatus(ReservationStatus.LEASED));
-        em.flush();
-        em.clear();
-        
-        log.info("Receipt 예약 상태 변경 : {}", receipts.size());
+        long affected = receiptsQueryDslRepositoryImpl.dailyUpdateReservationStatusToLeased();
+        log.info("Receipt 예약 상태 변경 : {}", affected);
     }
-
-    @Transactional
-    @Scheduled(cron = "0 0 0 * * ?")
-    public void StagingPaymentDeleteDummyData() {
-        QStagingPayment qStagingPayment = QStagingPayment.stagingPayment;
-        JPADeleteClause deleteClause = new JPADeleteClause(em, qStagingPayment);
-        LocalDateTime today = LocalDate.now().atStartOfDay();
-
-        long deletedCount = deleteClause.where(qStagingPayment.updatedAt.lt(today)).execute();
-
-        log.info("StagingPayment 더미 데이터 삭제 : {}", deletedCount);
-    }
-
 }

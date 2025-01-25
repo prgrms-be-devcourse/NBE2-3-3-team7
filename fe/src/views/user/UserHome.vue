@@ -6,7 +6,7 @@ import PaymentCard from '@/components/user/home/PaymentCard.vue';
 import LandAnalytics from '@/components/user/home/LandAnalytics.vue';
 
 const user = [
-	{ name: "바쿠고", image: "https://image.zeta-ai.io/profile-image/1248e692-a5ea-4504-b25b-cafba0065925/264b67a1-887d-4959-aa04-43bf10935f4d.jpeg?w=3840&q=75&f=webp", email: "admin@test.com", tel: "010-1234-5678", role: "landlord", businessId: "123-456-789" }
+	{ name: "바쿠고", image: "https://image.zeta-ai.io/profile-image/1248e692-a5ea-4504-b25b-cafba0065925/264b67a1-887d-4959-aa04-43bf10935f4d.jpeg?w=3840&q=75&f=webp", email: "admin@test.com", tel: "010-1234-5678", role: "customer", businessId: "123-456-789" }
 ];
 
 const land = [

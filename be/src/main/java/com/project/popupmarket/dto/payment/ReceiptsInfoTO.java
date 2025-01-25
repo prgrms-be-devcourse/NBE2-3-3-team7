@@ -1,22 +1,20 @@
 package com.project.popupmarket.dto.payment;
 
-import lombok.*;
+import lombok.Builder;
+import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Getter
-@Setter
-@ToString
-@NoArgsConstructor
-@AllArgsConstructor
+@Builder
 public class ReceiptsInfoTO {
     private String orderId;
-    private String reservationStatus;
-    private String rentalPlaceName;
-    private String reservationUserName;
+    private String status;
+    private String landTitle;
+    private String customerName;
     private BigDecimal price;
-    private BigDecimal totalAmount;
-    private LocalDate startDate;
-    private LocalDate endDate;
+    private BigDecimal amount;
+    private LocalDate start;
+    private LocalDate end;
 }

@@ -1,13 +1,13 @@
 package com.project.popupmarket.dto.payment;
 
+import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
 
 import java.util.List;
 
 @Getter
-@Setter
+@Builder
 public class ReservationResponse {
-    private String rentalLandTitle;
+    private String landTitle;
     private List<ReceiptsInfoTO> reservation;
 }

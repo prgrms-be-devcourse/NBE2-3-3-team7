@@ -1,5 +1,6 @@
 package com.project.popupmarket.exception;
 
+import com.project.popupmarket.exception.custom.PaymentException;
 import com.project.popupmarket.exception.custom.ResourceNotFoundException;
 import com.project.popupmarket.exception.custom.S3Exception;
 import org.apache.tomcat.websocket.AuthenticationException;
@@ -52,5 +53,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException e) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(new ErrorResponse(e.getMessage(), HttpStatus.UNAUTHORIZED.toString()));
+    }
+
+    @ExceptionHandler(PaymentException.class)
+    public ResponseEntity<ErrorResponse> handlePaymentException(PaymentException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST.toString()));
     }
 }
