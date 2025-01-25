@@ -1,14 +1,12 @@
 package com.project.popupmarket.dto.payment;
 
-import lombok.*;
+import lombok.Builder;
+import lombok.Getter;
 
 import java.math.BigDecimal;
 
 @Getter
-@Setter
-@ToString
-@NoArgsConstructor
-@AllArgsConstructor
+@Builder
 public class TossPaymentTO {
     private String paymentKey;
     private String orderId;

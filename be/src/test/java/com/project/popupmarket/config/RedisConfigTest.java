@@ -9,6 +9,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -57,6 +58,29 @@ class RedisConfigTest {
         // when
         HashMap<String, Object> retrievedUserMap = (HashMap<String, Object>) hashOps.entries(key);
         System.out.println(retrievedUserMap); // 역직렬화해서 가져옴
+
+        // then
+        assertEquals(userMap.get("name"), retrievedUserMap.get("name"));
+        assertEquals(userMap.get("age"), retrievedUserMap.get("age"));
+    }
+
+    @DisplayName("LocalDate 확인")
+    @Test
+    void objectTemplateLocalDateTest() {
+        // given
+        String key = "user:info";
+
+        HashMap<String, Object> userMap = new HashMap<>();
+        userMap.put("name", "gildong");
+        userMap.put("age", 25);
+        userMap.put("registered", LocalDate.now());
+
+        HashOperations<String, String, Object> hashOps = objectTemplate.opsForHash();
+        hashOps.putAll(key, userMap);
+
+        // when
+        HashMap<String, Object> retrievedUserMap = (HashMap<String, Object>) hashOps.entries(key);
+        System.out.println(retrievedUserMap.get("registered")); // 역직렬화해서 가져옴
 
         // then
         assertEquals(userMap.get("name"), retrievedUserMap.get("name"));

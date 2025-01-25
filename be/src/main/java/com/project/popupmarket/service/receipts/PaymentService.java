@@ -3,251 +3,177 @@ package com.project.popupmarket.service.receipts;
 import com.project.popupmarket.dto.payment.*;
 import com.project.popupmarket.entity.*;
 import com.project.popupmarket.enums.ReservationStatus;
+import com.project.popupmarket.exception.custom.PaymentException;
+import com.project.popupmarket.repository.ReceiptsQueryDslRepositoryImpl;
 import com.project.popupmarket.repository.ReceiptsRepository;
-import com.project.popupmarket.repository.StagingPaymentRepository;
-import com.querydsl.core.types.Projections;
-import com.querydsl.jpa.impl.JPAQuery;
-import com.querydsl.jpa.impl.JPAUpdateClause;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
+import com.project.popupmarket.util.UserContextUtil;
+import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.transaction.Transactional;
-import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class PaymentService {
 
-    @PersistenceContext
-    private EntityManager em;
-
+    private final StagingPaymentRedisService stagingPaymentRedisService;
     private final ReceiptsRepository receiptsRepository;
-    private final StagingPaymentRepository stagingPaymentRepository;
+    private final TossRequestService tossRequestService;
+    private final UserContextUtil userContextUtil;
+    private final JPAQueryFactory queryFactory;
+    private final ReceiptsQueryDslRepositoryImpl receiptsQueryDslRepositoryImpl;
 
-    @Autowired
-    public PaymentService(ReceiptsRepository receiptsRepository, StagingPaymentRepository stagingPaymentRepository) {
-        this.receiptsRepository = receiptsRepository;
-        this.stagingPaymentRepository = stagingPaymentRepository;
-    }
+    @Transactional
+    public void paymentProcess(TossPaymentTO payment) {
+        ReceiptsTO receipt = tossRequestService.requestPayment(payment)
+                .withCustomerId(userContextUtil.getUserId());
 
-    public boolean receiptReservationDateCheck(ReservationTO reservation) {
-        QReceipts qReceipt = QReceipts.receipts;
-        JPAQuery<Receipts> query = new JPAQuery<>(em);
-
-        return query.select(qReceipt)
-                .from(qReceipt)
-                .where(
-                        qReceipt.rentalLandId.eq(reservation.getRentalLandId())
-                                .and(qReceipt.startDate.between(reservation.getStartDate(), reservation.getEndDate())
-                                    .or(qReceipt.endDate.between(reservation.getStartDate(), reservation.getEndDate()))
-                                ).and(qReceipt.reservationStatus.ne(ReservationStatus.CANCELED))
-                ).fetch().isEmpty();
+        try {
+            insertReceipt(receipt);
+        } catch (Exception e) {
+            tossRequestService.cancelPayment(payment.getPaymentKey(), "시스템 에러로 인한 결제 취소");
+            log.error("영수증 저장 실패로 결제 취소 처리: {}", e.getMessage());
+            throw new PaymentException("결제 실패: 영수증 저장 중 오류 발생", e);
+        }
     }
 
     public ReservationInfoResponse getPaymentInfo(ReservationTO reservation) {
-        boolean flag = receiptReservationDateCheck(reservation);
+        boolean isReservationValid = receiptsRepository.reservationDateCheck(reservation);
+
+        if (!isReservationValid) {
+            throw new IllegalArgumentException("이미 예약된 날짜입니다.");
+        }
 
         QUser qUser = QUser.user;
         QRentalLand qRentalLand = QRentalLand.rentalLand;
 
-        JPAQuery<User> userJPAQuery = new JPAQuery<>(em);
-        JPAQuery<RentalLand> placeJPAQuery = new JPAQuery<>(em);
+        User user = queryFactory.selectFrom(qUser)
+                .where(qUser.id.eq(reservation.getCustomerId()))
+                .fetchOne();
 
-        if (flag) {
-            User user = userJPAQuery.select(qUser).from(qUser)
-                    .where(qUser.id.eq(reservation.getCustomerId()))
-                    .fetchOne();
+        RentalLand rentalLand = queryFactory.selectFrom(qRentalLand)
+                .where(qRentalLand.id.eq(reservation.getLandId()))
+                .fetchOne();
 
-            RentalLand rentalLand = placeJPAQuery.select(qRentalLand).from(qRentalLand)
-                    .where(qRentalLand.id.eq(reservation.getRentalLandId()))
-                    .fetchOne();
+        if (user == null || rentalLand == null) {
+            throw new IllegalArgumentException("사용자 또는 임대지를 찾을 수 없습니다.");
+        }
 
-            return ReservationInfoResponse.builder()
-                            .customerKey(UUID.randomUUID().toString())
-                            .placeName(rentalLand.getTitle())
-                            .price(rentalLand.getPrice())
-                            .userEmail(user.getEmail())
-                            .userName(user.getName())
-                            .userTel(user.getTel())
-                            .zipcode(rentalLand.getZipcode())
-                            .address(rentalLand.getAddress())
-                            .addrDetail(rentalLand.getAddrDetail())
-                            .build();
-        } else {
-            return null;
+        return ReservationInfoResponse.builder()
+                .customerKey(UUID.randomUUID().toString())
+                .landTitle(rentalLand.getTitle())
+                .price(rentalLand.getPrice())
+                .customerEmail(user.getEmail())
+                .customerName(user.getName())
+                .customerTel(user.getTel())
+                .zipcode(rentalLand.getZipcode())
+                .address(rentalLand.getAddress())
+                .addrDetail(rentalLand.getAddrDetail())
+                .build();
+    }
+
+    @Transactional
+    public void insertStagingPayment(ReceiptsTO receipt) {
+        StagingPayment stagingPayment = StagingPayment.builder()
+                .orderId(receipt.getOrderId())
+                .customerId(receipt.getCustomerId())
+                .rentalLandId(receipt.getLandId())
+                .startDate(receipt.getStart())
+                .endDate(receipt.getEnd())
+                .totalAmount(receipt.getAmount())
+                .build();
+
+        stagingPaymentRedisService.save(stagingPayment.getOrderId(), stagingPayment);
+
+        StagingPayment saved = stagingPaymentRedisService.find(stagingPayment.getOrderId());
+        if (saved == null || !saved.getOrderId().equals(stagingPayment.getOrderId())) {
+            log.error("Redis 저장 실패: Order ID = {}", stagingPayment.getOrderId());
+            throw new PaymentException("Redis에 결제 데이터를 저장하는 데 실패하였습니다.");
         }
     }
 
     @Transactional
-    public boolean insertStagingPayment(ReceiptsTO receipt) {
-        // 유저랑 임대지 테이블 병합시 수정 필요.
+    public void insertReceipt(ReceiptsTO receipt) {
+        StagingPayment stagingPayment = stagingPaymentRedisService.find(receipt.getOrderId());
 
-        ModelMapper modelMapper = new ModelMapper();
-        StagingPayment stagingPayment = modelMapper.map(receipt, StagingPayment.class);
-        StagingPayment saved = stagingPaymentRepository.save(stagingPayment);
+        if (stagingPayment == null) {
+            throw new IllegalArgumentException("해당 Order ID에 대한 StagingPayment를 찾을 수 없습니다.");
+        }
 
-        return saved.getOrderId() != null && saved.getOrderId().equals(stagingPayment.getOrderId());
+        Receipts receipts = Receipts.builder()
+                .paymentKey(receipt.getPaymentKey())
+                .orderId(receipt.getOrderId())
+                .customerId(receipt.getCustomerId())
+                .rentalLandId(receipt.getLandId())
+                .startDate(receipt.getStart())
+                .endDate(receipt.getEnd())
+                .amount(receipt.getAmount())
+                .reservationStatus(ReservationStatus.COMPLETED)
+                .build();
+
+        receiptsRepository.save(receipts);
+        stagingPaymentRedisService.delete(receipt.getOrderId());
     }
 
     @Transactional
-    public boolean insertReceipt(ReceiptsTO receipt) {
-        // 유저랑 임대지 테이블 병합시 수정 필요.
+    public void deleteStagingPayment(ReceiptsTO receipt) {
+        try {
+            StagingPayment stagingPayment = stagingPaymentRedisService.find(receipt.getOrderId());
 
-        Receipts mapped = new ModelMapper().map(receipt, Receipts.class);
+            if (stagingPayment == null) {
+                throw new IllegalArgumentException("주문 번호를 찾을 수 없습니다. " + receipt.getOrderId());
+            }
 
-        Optional<StagingPayment> stagingPaymentOptional = stagingPaymentRepository.findById(receipt.getOrderId());
-
-        if (stagingPaymentOptional.isPresent()){
-            new ModelMapper().map(stagingPaymentOptional.get(), mapped);
-            mapped.setReservationStatus(ReservationStatus.COMPLETED);
-            Receipts saved = receiptsRepository.save(mapped);
-            stagingPaymentRepository.delete(stagingPaymentOptional.get());
-
-            return saved.getOrderId() != null && saved.getOrderId().equals(receipt.getOrderId());
+            stagingPaymentRedisService.delete(receipt.getOrderId());
+        } catch (IllegalArgumentException e) {
+            log.warn("해당 임시 결제 내역을 삭제할 수 없습니다. : {}", e.getMessage());
+            throw e; // 필요한 경우 다시 던짐
+        } catch (Exception e) {
+            log.error("임시 결제 내역을 삭제하면서 알 수 없는 오류가 발생했습니다.");
+            throw new PaymentException("임시 결제 내역 삭제에 실패했습니다.");
         }
+    }
 
-        return false;
+    public List<ReceiptsInfoTO> getReceiptsInfoByLandId(Long landId) {
+        return receiptsQueryDslRepositoryImpl.getReceiptsByLandId(landId);
+    }
+
+    public List<ReceiptsInfoTO> getReceiptsInfoByCustomerId(Long customerId) {
+        return receiptsQueryDslRepositoryImpl.getReceiptsByCustomerId(customerId);
     }
 
     @Transactional
-    public boolean deleteStagingPayment(ReceiptsTO receipt) {
-        Optional<StagingPayment> stagingPaymentOptional = stagingPaymentRepository.findById(receipt.getOrderId());
+    public void changeReservationStatus(String orderId) {
+        Receipts receipts = receiptsQueryDslRepositoryImpl.findReceiptsByOrderId(orderId);
 
-        if (stagingPaymentOptional.isPresent()) {
-            StagingPayment stagingPayment = stagingPaymentOptional.get();
-
-            stagingPaymentRepository.delete(stagingPayment);
-            return true;
+        if (receipts == null) {
+            throw new IllegalArgumentException("해당 주문 번호에 대한 예약 정보를 찾을 수 없습니다.");
         }
 
-        return false;
-    }
+        long affected = receiptsRepository.updateReservationStatusToCanceledByOrderId(orderId);
 
-    public List<ReceiptsInfoTO> getReceiptsByPlaceSeq(Long placeSeq) {
-        QReceipts qReceipts = QReceipts.receipts;
-        JPAQuery<Receipts> receiptJPAQuery = new JPAQuery<>(em);
-
-        QRentalLand qRentalPlace = QRentalLand.rentalLand;
-        QUser qUser = QUser.user;
-
-        List<ReceiptsInfoTO> receiptInfoList = new ArrayList<>();
-
-        receiptJPAQuery.select(qReceipts)
-                .from(qReceipts)
-                .where(qReceipts.rentalLandId.eq(placeSeq).and(
-                        qReceipts.reservationStatus.eq(ReservationStatus.COMPLETED)
-                ))
-                .orderBy(qReceipts.reservedAt.desc())
-                .fetch()
-                .forEach(item -> {
-                    ReceiptsInfoTO receiptsInfoTO = new ModelMapper().map(item, ReceiptsInfoTO.class);
-
-                    JPAQuery<RentalLand> rentalPlaceJPAQuery = new JPAQuery<>(em);
-                    JPAQuery<User> userJPAQuery = new JPAQuery<>(em);
-
-                    receiptsInfoTO.setRentalPlaceName(
-                            rentalPlaceJPAQuery.select(qRentalPlace.title)
-                                    .from(qRentalPlace)
-                                    .where(qRentalPlace.id.eq(item.getRentalLandId()))
-                                    .fetchOne()
-                    );
-
-                    receiptsInfoTO.setReservationUserName(
-                            userJPAQuery.select(qUser.name)
-                                    .from(qUser)
-                                    .where(qUser.id.eq(item.getCustomerId()))
-                                    .fetchOne()
-                    );
-
-                    receiptsInfoTO.setPrice(
-                            receiptsInfoTO.getTotalAmount().divide(
-                                    BigDecimal.valueOf(
-                                            ChronoUnit.DAYS.between(receiptsInfoTO.getStartDate(), receiptsInfoTO.getEndDate()) + 1
-                                    ),0, RoundingMode.UP
-                            )
-                    );
-                    receiptsInfoTO.setReservationStatus(item.getReservationStatus().getDesc());
-
-                    receiptInfoList.add(receiptsInfoTO);
-                });
-        return receiptInfoList;
-    }
-
-    public List<ReceiptsInfoTO> getReceiptsByUserSeq(Long userSeq) {
-        QReceipts qReceipts = QReceipts.receipts;
-        JPAQuery<Receipts> receiptJPAQuery = new JPAQuery<>(em);
-
-        QRentalLand qRentalPlace = QRentalLand.rentalLand;
-
-        List<ReceiptsInfoTO> receiptInfoList = new ArrayList<>();
-
-        receiptJPAQuery.select(qReceipts)
-                .from(qReceipts)
-                .where(qReceipts.customerId.eq(userSeq))
-                .orderBy(qReceipts.reservedAt.desc())
-                .fetch()
-                .forEach(item -> {
-                    ReceiptsInfoTO receiptsInfoTO = new ReceiptsInfoTO();
-                    new ModelMapper().map(item, receiptsInfoTO);
-                    JPAQuery<RentalLand> rentalPlaceJPAQuery = new JPAQuery<>(em);
-
-                    receiptsInfoTO.setRentalPlaceName(
-                            rentalPlaceJPAQuery.select(qRentalPlace.title)
-                                    .from(qRentalPlace)
-                                    .where(qRentalPlace.id.eq(item.getRentalLandId()))
-                                    .fetchOne()
-                    );
-                    receiptsInfoTO.setPrice(
-                        receiptsInfoTO.getTotalAmount().divide(
-                            BigDecimal.valueOf(
-                                ChronoUnit.DAYS.between(receiptsInfoTO.getStartDate(), receiptsInfoTO.getEndDate()) + 1
-                            ),0, RoundingMode.UP
-                        )
-                    );
-                    receiptsInfoTO.setReservationStatus(item.getReservationStatus().getDesc());
-
-                    receiptInfoList.add(receiptsInfoTO);
-                });
-
-        return receiptInfoList;
-    }
-
-    @Transactional
-    public TossPaymentTO changeReservationStatus(Long userId, String orderId) {
-        QReceipts qReceipts = QReceipts.receipts;
-        JPAUpdateClause jpaUpdateClause = new JPAUpdateClause(em, qReceipts);
-        JPAQuery<Receipts> query = new JPAQuery<>(em);
-        Receipts receipts = query.select(qReceipts).from(qReceipts)
-                        .where(qReceipts.orderId.eq(orderId)).fetchOne();
-
-        jpaUpdateClause.set(qReceipts.reservationStatus, ReservationStatus.CANCELED)
-                .where(qReceipts.orderId.eq(orderId)
-                        .and(qReceipts.customerId.eq(userId))
-                        .and(qReceipts.reservationStatus.eq(ReservationStatus.COMPLETED)))
-                .execute();
-
-        if (receipts != null) {
-            return new ModelMapper().map(receipts, TossPaymentTO.class);
-        } else {
-            return null;
+        if (affected == 0) {
+            throw new PaymentException("");
         }
+
+        TossPaymentTO payment = TossPaymentTO.builder()
+                .paymentKey(receipts.getPaymentKey())
+                .orderId(receipts.getOrderId())
+                .amount(receipts.getAmount())
+                .build();
+
+        if (payment == null) {
+            throw new PaymentException("");
+        }
+
+        tossRequestService.cancelPayment(payment.getPaymentKey(), "시스템 에러로 인한 결제 취소");
     }
 
     public List<RangeDateTO> getRangeDates(Long rentalPlaceSeq) {
-        QReceipts qReceipts = QReceipts.receipts;
-        JPAQuery<Receipts> query = new JPAQuery<>(em);
-
-        return query.select(Projections.constructor(RangeDateTO.class, qReceipts.startDate, qReceipts.endDate)).from(qReceipts)
-                .where(
-                    qReceipts.rentalLandId.eq(rentalPlaceSeq)
-                    .and(qReceipts.reservationStatus.eq(ReservationStatus.COMPLETED))
-                    .and(qReceipts.startDate.goe(LocalDate.now()))
-                ).fetch();
+        return receiptsQueryDslRepositoryImpl.getRangeDates(rentalPlaceSeq);
     }
 }

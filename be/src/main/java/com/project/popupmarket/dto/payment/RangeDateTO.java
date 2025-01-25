@@ -1,15 +1,13 @@
 package com.project.popupmarket.dto.payment;
 
-import lombok.*;
+import lombok.Builder;
+import lombok.Getter;
 
 import java.time.LocalDate;
 
 @Getter
-@Setter
-@ToString
-@NoArgsConstructor
-@AllArgsConstructor
+@Builder
 public class RangeDateTO {
-    private LocalDate startDate;
-    private LocalDate endDate;
+    private LocalDate start;
+    private LocalDate end;
 }
