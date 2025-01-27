@@ -1,9 +1,13 @@
 package com.project.popupmarket.service.user;
 
 import com.project.popupmarket.dto.auth.LoginRequest;
+import com.project.popupmarket.dto.oauth.OAuthSignupRequest;
 import com.project.popupmarket.dto.user.UserRegisterDto;
 import com.project.popupmarket.dto.user.UserUpdateRequest;
+import com.project.popupmarket.entity.BusinessId;
 import com.project.popupmarket.entity.User;
+import com.project.popupmarket.enums.AuthProvider;
+import com.project.popupmarket.repository.BusinessIdRepository;
 import com.project.popupmarket.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -28,16 +32,18 @@ import java.util.UUID;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final BusinessIdRepository businessIdRepository;
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     private final List<String> ALLOWED_EXTENSIONS = Arrays.asList(".jpg", ".jpeg", ".png", ".gif");
     private final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
     @Value("${app.upload-path}")
     private String uploadPath;
 
+    // 이메일로 회원가입 처리
     public Long save(UserRegisterDto dto) {
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-
-        return userRepository
+        validateDuplicateEmail(dto.getEmail());
+        long userId = userRepository
                 .save(User
                               .builder()
                               .email(dto.getEmail())
@@ -45,8 +51,30 @@ public class UserService {
                               .brand(dto.getBrand())
                               .name(dto.getName())
                               .tel(dto.getTel())
+                              .role(dto.getRole())
+                              .social(AuthProvider.EMAIL)
                               .build())
                 .getId();
+        businessIdRepository.save(BusinessId.builder().userId(userId).businessId(dto.getBusinessId()).build());
+        return userId;
+    }
+    // 구글 로그인 회원가입 처리
+    public Optional<User> save(OAuthSignupRequest dto, String email) {
+        long userId = userRepository
+                .save(User
+                              .builder()
+                              .email(email)
+                              .brand(dto.getBrand())
+                              .name(dto.getName())
+                              .tel(dto.getTel())
+                              .role(dto.getRole())
+                              .social(AuthProvider.GOOGLE)
+                              .build())
+                .getId();
+
+        businessIdRepository.save(BusinessId
+                                          .builder().userId(userId).businessId(dto.getBusinessId()).build());
+        return userRepository.findById(userId);
     }
 
     public User findById(Long userId) {
@@ -176,5 +204,11 @@ public class UserService {
 
         // 3. 인증된 사용자 정보 반환 (SecurityContextHolder 설정 제거)
         return user;
+    }
+
+    private void validateDuplicateEmail(String email) {
+        if (userRepository.existsByEmail(email)) {
+            throw new IllegalArgumentException("이미 가입된 이메일입니다.");
+        }
     }
 }

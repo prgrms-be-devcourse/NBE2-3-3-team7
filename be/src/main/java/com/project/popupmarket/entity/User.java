@@ -25,7 +25,7 @@ public class User implements UserDetails {
     @Column(name = "email", nullable = false, unique = true)
     private String email;
 
-    @Column(name = "password")
+    @Column(name = "password", nullable = true)
     private String password;
 
     @Column(name = "name", nullable = false)
@@ -45,9 +45,6 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     private Role role;
 
-    @Column(name = "business_id")
-    private String businessId;
-
     @Column(nullable = false)
     private LocalDateTime registeredAt;
 
@@ -57,14 +54,14 @@ public class User implements UserDetails {
     }
 
     @Builder
-    public User(String email, String password, String name, String brand, String tel) {
+    public User(String email, String password, String name, String brand, String tel, Role role, AuthProvider social) {
         this.email = email;
         this.password = password;
         this.name = name;
         this.brand = brand;
         this.tel = tel;
-        this.role = Role.CUSTOMER;
-        this.social = AuthProvider.GOOGLE;
+        this.role = role;
+        this.social = social;
     }
 
     public User update(String nickname) {

@@ -29,23 +29,28 @@ public class UserApiController {
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody UserRegisterDto request, HttpServletResponse response) {
-        // 회원 저장 및 ID 반환
-        Long userId = userService.save(request);
+        try {
+            // 회원 저장 및 ID 반환
+            Long userId = userService.save(request);
 
-        // 저장된 회원 정보 조회
-        User user = userService.findById(userId);
+            // 저장된 회원 정보 조회
+            User user = userService.findById(userId);
 
-        // JWT 토큰 생성
-        String refreshToken = tokenService.createRefreshToken(user);
-        String accessToken = tokenService.createAccessToken(user);
+            // JWT 토큰 생성
+            String refreshToken = tokenService.createRefreshToken(user);
+            String accessToken = tokenService.createAccessToken(user);
 
 
-        // 쿠키에 리프레시 토큰 저장
-        CookieUtil.addCookie(response, JWT_TOKEN_COOKIE_NAME, refreshToken, (int) Duration
-                .ofDays(14)
-                .toSeconds());
+            // 쿠키에 리프레시 토큰 저장
+            CookieUtil.addCookie(response, JWT_TOKEN_COOKIE_NAME, refreshToken, (int) Duration
+                    .ofDays(14)
+                    .toSeconds());
 
-        return ResponseEntity.ok(new CreateAccessTokenResponse(accessToken));
+            return ResponseEntity.ok(new CreateAccessTokenResponse(accessToken));
+        } catch (Exception e) {
+            return ResponseEntity
+                    .badRequest()
+                    .body("회원가입에 실패했습니다.");
+        }
     }
-
 }
