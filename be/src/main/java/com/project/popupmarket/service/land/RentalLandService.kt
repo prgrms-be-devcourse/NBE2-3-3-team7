@@ -33,16 +33,16 @@ open class RentalLandService(
     }
 
     // 2 - 1. Read : 조건에 해당하는 팝업들 미리보기
-    fun findFilteredWithPagination(
-        minCapacity: Int?, maxCapacity: Int?, location: String?,
+    fun findByFilter(
+        minArea: Int?, maxArea: Int?, location: String?,
         minPrice: BigDecimal?, maxPrice: BigDecimal?,
         startDate: LocalDate?, endDate: LocalDate?,
         sorting: String?, pageable: Pageable?
     ): Page<RentalLandRespTO> {
         val modelMapper = ModelMapper()
         val rentalLandRespTO = rentalLandJpaRepository
-            .findFilteredWithPagination(
-                minCapacity, maxCapacity, location,
+            .findByFilter(
+                minArea, maxArea, location,
                 minPrice, maxPrice,
                 startDate, endDate, sorting, pageable
             )
@@ -64,7 +64,7 @@ open class RentalLandService(
     }
 
     // 2 - 2. Read : 특정 번호에 해당하는 임대지 상세 정보
-    fun getUserWithImages(id: Long): RentalLandRespTO {
+    fun findRentalLandById(id: Long): RentalLandRespTO {
         return rentalLandJpaRepository.findById(id)
             .map<RentalLandRespTO> { rentalLand: RentalLand ->
                 val rentalLandTO = ModelMapper().map(rentalLand, RentalLandTO::class.java)
@@ -85,10 +85,10 @@ open class RentalLandService(
     }
 
     //  2 - 3. Read : 관리 중인 임대지 목록
-    fun findRentalPlacesByUserId(userSeq: Long): List<RentalLandRespTO> {
+    fun findByUserId(userSeq: Long): List<RentalLandRespTO> {
         val modelMapper = ModelMapper()
 
-        val rentalLandRespTO = rentalLandJpaRepository.findRentalPlacesByUserId(userSeq)
+        val rentalLandRespTO = rentalLandJpaRepository.findByUserId(userSeq)
             .map{ rp ->
                 val rentalLandTO = modelMapper.map(rp, RentalLandTO::class.java)
 
@@ -109,9 +109,9 @@ open class RentalLandService(
     }
 
     // 2 - 4. Read : 메인 페이지 임대지 10개 조회
-    fun findWithLimit(): List<RentalLandRespTO> {
+    fun findByLimit(): List<RentalLandRespTO> {
         val modelMapper = ModelMapper()
-        val rentalLandRespTO = rentalLandJpaRepository.findWithLimit()
+        val rentalLandRespTO = rentalLandJpaRepository.findByLimit()
             .map{ rp: RentalLand ->
                 val rentalLandTO = modelMapper.map(rp, RentalLandTO::class.java)
                 val thumbnailFilePath = "land/${rentalLandTO.id}_thumbnail.png"
@@ -134,7 +134,7 @@ open class RentalLandService(
 
     // 1. Create : 임대지 추가
     @Transactional
-    open fun insertRentalPlace(
+    open fun insert(
         to: RentalLandTO,
         thumbnail: MultipartFile,
         images: List<MultipartFile>
@@ -169,7 +169,7 @@ open class RentalLandService(
 
     // 3. Update : 임대지 상태 변경 -> [ACTIVE, INACTIVE]
     @Transactional
-    open fun updateRentalPlaceStatus(id: Long, status: String) {
+    open fun updateStatus(id: Long, status: String) {
         try {
             val changedStatus = ActivateStatus.valueOf(status)
 
@@ -181,7 +181,7 @@ open class RentalLandService(
 
     // 4 - 1 . Delete : 임대지 이미지 삭제
     @Transactional
-    open fun deleteRentalPlaceById(id: Long) {
+    open fun delete(id: Long) {
         // DB에서 삭제 대상 확인
 
         val exists = rentalLandJpaRepository.existsById(id)
@@ -197,12 +197,12 @@ open class RentalLandService(
         }
 
         // DB에서 임대지 삭제
-        rentalLandJpaRepository.deleteRentalPlaceById(id)
+        rentalLandJpaRepository.deleteRentalLandById(id)
     }
 
     // 4 - 2. Delete : 임대지 이미지 삭제
     @Transactional
-    open fun deleteRentalImageById(id: Long) {
+    open fun deleteImage(id: Long) {
         try {
             s3FileService.deleteFiles("land", id)
         } catch (e: Exception) {

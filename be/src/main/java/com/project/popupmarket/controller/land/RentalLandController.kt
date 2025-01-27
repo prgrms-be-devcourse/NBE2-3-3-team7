@@ -31,8 +31,8 @@ class RentalLandController (
     @GetMapping("/land/list")
     @Operation(summary = "조건에 해당하는 임대지 리스트")
     fun rentalListPagination( // 임대 리스트 페이지 9개 + 필터링 + 페이지네이션
-        @RequestParam(required = false) minCapacity: Int?,  // 최소 면적 기본값 0
-        @RequestParam(required = false) maxCapacity: Int?,  // 최소 면적 기본값 100
+        @RequestParam(required = false) minArea: Int?,  // 최소 면적 기본값 0
+        @RequestParam(required = false) maxArea: Int?,  // 최소 면적 기본값 100
         @RequestParam(required = false) location: String?,  // 위치, 기본값 null
         @RequestParam(required = false) minPrice: BigDecimal?,  // 최소 가격 기본값 0
         @RequestParam(required = false) maxPrice: BigDecimal?,  // 최소 가격 기본값 10000000
@@ -45,14 +45,14 @@ class RentalLandController (
 //        GET /list?minArea=30&maxArea=70&location=서울&minPrice=100000&maxPrice=9000000&page=0
         //Capacity, Price, Name, Thumbnail
 
-        val minCap = minCapacity ?: 1
-        val maxCap = maxCapacity ?: 500
+        val minA = minArea ?: 1
+        val maxA = maxArea ?: 500
         val minP = minPrice ?: BigDecimal(1)
         val maxP = maxPrice ?: BigDecimal(10000000)
 
         val pageable: Pageable = PageRequest.of(page, 9)
 
-        return rentalLandService.findFilteredWithPagination(minCap, maxCap, location, minP, maxP, startDate, endDate, sorting, pageable)
+        return rentalLandService.findByFilter(minA, maxA, location, minP, maxP, startDate, endDate, sorting, pageable)
 
     }
 
@@ -63,7 +63,7 @@ class RentalLandController (
     fun rentalPlaceById(
         @PathVariable id: Long
     ): ResponseEntity<RentalLandRespTO> {
-        return ResponseEntity.ok(rentalLandService.getUserWithImages(id))
+        return ResponseEntity.ok(rentalLandService.findRentalLandById(id))
     }
 
     // [ Read ] - 3 : 관리 중인 임대지 목록
@@ -72,7 +72,7 @@ class RentalLandController (
     fun userRentalList(): List<RentalLandRespTO> {
         val userSeq = userContextUtil.userId
 
-        return rentalLandService.findRentalPlacesByUserId(userSeq)
+        return rentalLandService.findByUserId(userSeq)
     }
 
     // [ CREATE ]
@@ -86,7 +86,7 @@ class RentalLandController (
         val userSeq = userContextUtil.userId
         rentalPlaceTO.landlordId = userSeq
 
-        rentalLandService.insertRentalPlace(rentalPlaceTO, thumbnail, images)
+        rentalLandService.insert(rentalPlaceTO, thumbnail, images)
 
         return ResponseEntity.status(HttpStatus.CREATED).build()
     }
@@ -103,8 +103,8 @@ class RentalLandController (
         rentalPlaceTO.id = id
         rentalPlaceTO.landlordId = userContextUtil.userId
 
-        rentalLandService.deleteRentalImageById(id)
-        rentalLandService.insertRentalPlace(rentalPlaceTO, thumbnail, images)
+        rentalLandService.deleteImage(id)
+        rentalLandService.insert(rentalPlaceTO, thumbnail, images)
 
         return ResponseEntity.noContent().build()
     }
@@ -116,7 +116,7 @@ class RentalLandController (
         @PathVariable("id") id: Long,
         @RequestBody status: String
     ): ResponseEntity<Void> {
-        rentalLandService.updateRentalPlaceStatus(id, status)
+        rentalLandService.updateStatus(id, status)
         return ResponseEntity.ok().build()
     }
 
@@ -126,7 +126,7 @@ class RentalLandController (
     fun deleteRentalPlace(
         @PathVariable id: Long
     ): ResponseEntity<Void> {
-        rentalLandService.deleteRentalPlaceById(id)
+        rentalLandService.delete(id)
         return ResponseEntity.noContent().build()
     }
 }
