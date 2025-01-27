@@ -15,7 +15,7 @@ import java.time.LocalDate
 interface RentalLandJpaRepository : JpaRepository<RentalLand, Long> {
     //jpql
     @Query(value = "SELECT rp FROM RentalLand rp ORDER BY rp.registeredAt DESC LIMIT 10")
-    fun findWithLimit(): List<RentalLand>
+    fun findByLimit(): List<RentalLand>
 
     @Query(
         ("SELECT rp " +
@@ -23,7 +23,7 @@ interface RentalLandJpaRepository : JpaRepository<RentalLand, Long> {
                 "WHERE rp.landlordId = :userId " +
                 "ORDER BY rp.registeredAt DESC")
     )
-    fun findRentalPlacesByUserId(@Param("userId") userId: Long): List<RentalLand>
+    fun findByUserId(@Param("userId") userId: Long): List<RentalLand>
 
     @Query(
         ("SELECT rp " +
@@ -41,7 +41,7 @@ interface RentalLandJpaRepository : JpaRepository<RentalLand, Long> {
         value = ("SELECT rp " +
                 "FROM RentalLand rp " +
                 "WHERE rp.status = 'ACTIVE' " +
-                "AND rp.area BETWEEN :minCapacity AND :maxCapacity " +
+                "AND rp.area BETWEEN :minArea AND :maxArea " +
                 "AND (:location IS NULL OR rp.address LIKE %:location%) " +
                 "AND rp.price BETWEEN :minPrice AND :maxPrice " +
                 "AND NOT EXISTS (" +
@@ -60,9 +60,9 @@ interface RentalLandJpaRepository : JpaRepository<RentalLand, Long> {
                 "CASE WHEN :sorting IS NULL OR :sorting = '' THEN rp.registeredAt END DESC," +
                 "CASE WHEN :sorting NOT IN ('registered_desc', 'registered_asc') THEN rp.registeredAt END DESC")
     )
-    fun findFilteredWithPagination(
-        @Param("minCapacity") minCapacity: Int?,
-        @Param("maxCapacity") maxCapacity: Int?,
+    fun findByFilter(
+        @Param("minArea") minArea: Int?,
+        @Param("maxArea") maxArea: Int?,
         @Param("location") location: String?,
         @Param("minPrice") minPrice: BigDecimal?,
         @Param("maxPrice") maxPrice: BigDecimal?,
@@ -72,12 +72,9 @@ interface RentalLandJpaRepository : JpaRepository<RentalLand, Long> {
         pageable: Pageable?
     ): Page<RentalLand>
 
-    @Query("SELECT r.landlordId FROM RentalLand r WHERE r.id = :id")
-    fun findUserSeqById(@Param("id") id: Long): Long
-
     @Modifying
     @Query("DELETE FROM RentalLand r WHERE r.id = :id")
-    fun deleteRentalPlaceById(@Param("id") id: Long)
+    fun deleteRentalLandById(@Param("id") id: Long)
 
     @Modifying
     @Query("UPDATE RentalLand r SET r.status = :status WHERE r.id = :id")
