@@ -29,7 +29,7 @@ open class RentalLandService(
             .map { rentalLand ->
                 ModelMapper().map(rentalLand, RentalLandTO::class.java)
             }
-            .orElseThrow { ResourceNotFoundException("$id 의 임대지 게시글이 없습니다.") }
+            .orElseThrow { ResourceNotFoundException("${id}번 의 임대지 게시글이 없습니다.") }
     }
 
     // 2 - 1. Read : 조건에 해당하는 팝업들 미리보기
@@ -74,8 +74,6 @@ open class RentalLandService(
 
                 val filePath = "land/${rentalLandTO.id}_images_"
                 val imageUrls = s3FileService.getCloudFrontImageListUrl(filePath)
-                println(filePath)
-                println(imageUrls)
 
                 val respTO = RentalLandRespTO()
                 respTO.rentalLand = rentalLandTO
@@ -83,7 +81,7 @@ open class RentalLandService(
                 respTO.images = imageUrls
                 respTO
             }
-            .orElseThrow{ ResourceNotFoundException("$id 의 임대지 게시글이 없습니다.") }
+            .orElseThrow{ ResourceNotFoundException("${id}번 의 임대지 게시글이 없습니다.") }
     }
 
     //  2 - 3. Read : 관리 중인 임대지 목록
