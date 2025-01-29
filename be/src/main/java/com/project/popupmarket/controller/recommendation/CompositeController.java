@@ -3,8 +3,7 @@ package com.project.popupmarket.controller.recommendation;
 import com.project.popupmarket.dto.land.RentalLandRespTO;
 import com.project.popupmarket.dto.recommendation.RecommendItemTO;
 import com.project.popupmarket.dto.recommendation.PlaceDetailRespTO;
-import com.project.popupmarket.dto.land.RentalLandTO;
-import com.project.popupmarket.service.popup.PopupStoreService;
+import com.project.popupmarket.service.popup.PopupService;
 import com.project.popupmarket.service.receipts.PaymentService;
 import com.project.popupmarket.service.land.RentalLandService;
 import com.project.popupmarket.util.UserContextUtil;
@@ -25,7 +24,7 @@ import java.util.Map;
 public class CompositeController {
 
     private final RentalLandService rentalLandService;
-    private final PopupStoreService popupStoreService;
+    private final PopupService popupStoreService;
 //    private final PopupStoreImageJpaRepository popupStoreImageJpaRepository;
     private final UserContextUtil userContextUtil;
     private final PaymentService paymentService;
@@ -33,7 +32,7 @@ public class CompositeController {
     @GetMapping("/main/new")
     @Operation(summary = "메인 페이지 최신 데이터 각각 10개 조회")
     public ResponseEntity<RecommendItemTO> getNewData() {
-        return ResponseEntity.ok(new RecommendItemTO(popupStoreService.findByLimit(), rentalLandService.findWithLimit()));
+        return ResponseEntity.ok(new RecommendItemTO(popupStoreService.findWithLimit(), rentalLandService.findWithLimit()));
     }
 
 //    @GetMapping("/popup/view/{popupSeq}")
