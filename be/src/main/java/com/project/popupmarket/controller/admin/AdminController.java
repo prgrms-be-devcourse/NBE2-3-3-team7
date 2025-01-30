@@ -12,10 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -36,6 +33,13 @@ public class AdminController {
     ) {
         Page<RentalLandTO> rentalLandTO = rentalLandService.findLandAdminByFilter(address, status, title, sorting, pageable);
         return ResponseEntity.ok(rentalLandTO);
+    }
+
+    @DeleteMapping("/land/{id}")
+    @Operation(summary = "개별 임대지 삭제")
+    public ResponseEntity<Void> deleteLand(@PathVariable Long id) {
+        rentalLandService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/receipts")
