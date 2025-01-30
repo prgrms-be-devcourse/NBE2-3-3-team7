@@ -5,6 +5,7 @@ import com.project.popupmarket.dto.land.RentalLandRespTO;
 import com.project.popupmarket.dto.land.RentalLandTO;
 import com.project.popupmarket.enums.ActivateStatus;
 import com.project.popupmarket.enums.ReservationStatus;
+import com.project.popupmarket.service.AdminService;
 import com.project.popupmarket.service.land.RentalLandService;
 import com.project.popupmarket.service.receipts.PaymentService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,11 +24,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RequestMapping("/api/admin")
 public class AdminController {
-    @Autowired
-    private RentalLandService rentalLandService;
-    @Autowired
-    private PaymentService paymentService;
 
+    private final RentalLandService rentalLandService;
+    private final AdminService adminService;
 
     @GetMapping("/lands")
     @Operation(summary = "조건에 해당하는 임대지 리스트")
@@ -40,5 +39,16 @@ public class AdminController {
     ) {
         Page<RentalLandTO> rentalLandTO = rentalLandService.findLandAdminByFilter(address, status, title, sorting, pageable);
         return ResponseEntity.ok(rentalLandTO);
+    }
+
+    @GetMapping("/receipts")
+    @Operation(summary = "조건에 해당하는 거래 내역 관리 리스트")
+    public ResponseEntity<Page<AdminReceiptsDTO>> getReceiptsFilter(
+            @RequestParam(required = false) ReservationStatus status,
+            @RequestParam(required = false) String sorting,
+            @PageableDefault(size = 20) Pageable pageable
+    ) {
+        Page<AdminReceiptsDTO> adminReceiptsDTOPage = adminService.getAdminReceiptsInfo(status, sorting, pageable);
+        return ResponseEntity.ok(adminReceiptsDTOPage);
     }
 }

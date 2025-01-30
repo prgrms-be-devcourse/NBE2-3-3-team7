@@ -133,6 +133,7 @@ open class RentalLandService(
     }
 
     // 2 - 5. Read : 관리자 페이지 조건에 해당하는 임대지 20개 조회 + 검색 포함
+    // TODO : 추후 Admin Migration 완료 이후에 'AdminService' 로 이동
     fun findLandAdminByFilter(
         address: String?, status: ActivateStatus?,
         title: String?, // title 추가
