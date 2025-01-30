@@ -1,12 +1,14 @@
 package com.project.popupmarket.service.user;
 
 import com.project.popupmarket.dto.auth.LoginRequest;
+import com.project.popupmarket.dto.user.UserDto;
 import com.project.popupmarket.dto.user.UserRegisterDto;
 import com.project.popupmarket.dto.user.UserUpdateRequest;
 import com.project.popupmarket.entity.User;
 import com.project.popupmarket.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -57,6 +59,12 @@ public class UserService {
 
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+
+    public UserDto findReceiptsAdminById(Long userId) {
+        ModelMapper modelMapper = new ModelMapper();
+        User user = userRepository.findUserInfoById(userId);
+        return modelMapper.map(user, UserDto.class);
     }
 
     @Transactional

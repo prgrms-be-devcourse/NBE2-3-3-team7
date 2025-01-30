@@ -28,7 +28,6 @@ public class AdminController {
     @Autowired
     private PaymentService paymentService;
 
-
     @GetMapping("/lands")
     @Operation(summary = "조건에 해당하는 임대지 리스트")
     public ResponseEntity<Page<RentalLandTO>> getLandsByFilter(
@@ -40,5 +39,16 @@ public class AdminController {
     ) {
         Page<RentalLandTO> rentalLandTO = rentalLandService.findLandAdminByFilter(address, status, title, sorting, pageable);
         return ResponseEntity.ok(rentalLandTO);
+    }
+
+    @GetMapping("/receipts")
+    @Operation(summary = "조건에 해당하는 거래내역관리 리스트")
+    public ResponseEntity<Page<AdminReceiptsDTO>> getReceiptsFilter(
+            @RequestParam(required = false) ReservationStatus status,
+            @RequestParam(required = false) String sorting,
+            @PageableDefault(size = 20) Pageable pageable
+    ) {
+        Page<AdminReceiptsDTO> adminReceiptsDTOPage = paymentService.getAdminReceiptsInfo(status, sorting, pageable);
+        return ResponseEntity.ok(adminReceiptsDTOPage);
     }
 }

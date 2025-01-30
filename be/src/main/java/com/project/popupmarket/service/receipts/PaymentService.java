@@ -1,16 +1,24 @@
 package com.project.popupmarket.service.receipts;
 
+import com.project.popupmarket.dto.admin.AdminReceiptsDTO;
+import com.project.popupmarket.dto.land.RentalLandTO;
 import com.project.popupmarket.dto.payment.*;
+import com.project.popupmarket.dto.user.UserDto;
 import com.project.popupmarket.entity.*;
 import com.project.popupmarket.enums.ReservationStatus;
 import com.project.popupmarket.exception.custom.PaymentException;
 import com.project.popupmarket.repository.ReceiptsQueryDslRepositoryImpl;
 import com.project.popupmarket.repository.ReceiptsRepository;
+import com.project.popupmarket.service.land.RentalLandService;
+import com.project.popupmarket.service.user.UserService;
 import com.project.popupmarket.util.UserContextUtil;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -19,6 +27,10 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
+    @Autowired
+    private UserService userService;
+    @Autowired
+    private RentalLandService rentalLandService;
 
     private final StagingPaymentRedisService stagingPaymentRedisService;
     private final ReceiptsRepository receiptsRepository;
@@ -39,6 +51,23 @@ public class PaymentService {
             log.error("영수증 저장 실패로 결제 취소 처리: {}", e.getMessage());
             throw new PaymentException("결제 실패: 영수증 저장 중 오류 발생", e);
         }
+    }
+
+    public Page<AdminReceiptsDTO> getAdminReceiptsInfo (ReservationStatus reservation_status, String sorting, Pageable pageable) {
+
+        return receiptsRepository.findReceiptsByFilter(reservation_status, sorting, pageable)
+                .map(receipt -> {
+                    ReceiptsManageTO receiptsManageTO = ReceiptsManageTO.builder()
+                            .paymentKey(receipt.getPaymentKey())
+                            .amount(receipt.getAmount())
+                            .reservationStatus(receipt.getReservationStatus())
+                            .reservedAt(receipt.getReservedAt())
+                            .build();
+
+                    UserDto user = userService.findReceiptsAdminById(receipt.getCustomerId());
+                    RentalLandTO rentalLandTO = rentalLandService.findById(receipt.getRentalLandId());
+                    return new AdminReceiptsDTO(receiptsManageTO, rentalLandTO, user);
+                });
     }
 
     public ReservationInfoResponse getPaymentInfo(ReservationTO reservation) {
