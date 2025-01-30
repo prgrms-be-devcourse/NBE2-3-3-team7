@@ -132,6 +132,25 @@ open class RentalLandService(
         return rentalLandRespTO
     }
 
+    // 2 - 5. Read : 관리자 페이지 조건에 해당하는 임대지 20개 조회 + 검색 포함
+    fun findLandAdminByFilter(
+        address: String?, status: ActivateStatus?,
+        title: String?, // title 추가
+        sorting: String?, pageable: Pageable?
+    ): Page<RentalLandTO> {
+        val modelMapper = ModelMapper()
+
+        // 필터링된 데이터를 가져옴
+        val rentalLandPage = rentalLandJpaRepository.findLandAdminByFilter(
+            address, status, title, sorting, pageable // title 파라미터 추가
+        ).map { rentalLand ->
+            modelMapper.map(rentalLand, RentalLandTO::class.java)
+        }
+
+        // 데이터를 매핑하여 반환
+        return rentalLandPage
+    }
+
     // 1. Create : 임대지 추가
     @Transactional
     open fun insert(

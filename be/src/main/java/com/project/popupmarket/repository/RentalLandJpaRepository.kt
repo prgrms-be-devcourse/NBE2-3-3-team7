@@ -1,6 +1,7 @@
 package com.project.popupmarket.repository
 
 import com.project.popupmarket.entity.RentalLand
+import com.project.popupmarket.enums.ActivateStatus
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
@@ -68,6 +69,20 @@ interface RentalLandJpaRepository : JpaRepository<RentalLand, Long> {
         @Param("maxPrice") maxPrice: BigDecimal?,
         @Param("startDate") startDate: LocalDate?,
         @Param("endDate") endDate: LocalDate?,
+        @Param("sorting") sorting: String?,
+        pageable: Pageable?
+    ): Page<RentalLand>
+
+    @Query(
+        ("SELECT r FROM RentalLand r "+
+                "WHERE (:address IS NULL OR r.address LIKE %:address%) "+
+                "AND (:title IS NULL OR LOWER(r.title) LIKE LOWER(CONCAT('%', :title, '%'))) " +
+                "AND (:status IS NULL OR r.status = :status)")
+    )
+    fun findLandAdminByFilter(
+        @Param("address") address: String?,
+        @Param("status") status: ActivateStatus?,
+        @Param("title") title: String?,
         @Param("sorting") sorting: String?,
         pageable: Pageable?
     ): Page<RentalLand>
