@@ -1,5 +1,6 @@
 package com.project.popupmarket.service.popup
 
+import com.project.popupmarket.dto.land.RentalLandTO
 import com.project.popupmarket.dto.popup.PopupRespTO
 import com.project.popupmarket.dto.popup.PopupTO
 import com.project.popupmarket.entity.Popup
@@ -123,6 +124,29 @@ open class PopupService(
             throw ResourceNotFoundException("팝업에 대한 데이터가 없습니다.")
         }
         return popupRespTO
+    }
+
+    // 2 - 5. Read : 관리자 페이지 조건에 해당하는 팝업 20개 조회 + 검색 포함
+    // TODO : 추후 Admin Migration 완료 이후에 'AdminService' 로 이동
+    fun findPopupAdminByFilter(
+        address: String?, status: ActivateStatus?,
+        title: String?, type: String?,
+        sorting: String?, pageable: Pageable?
+    ): Page<PopupTO> {
+        val modelMapper = ModelMapper()
+        println(popupJpaRepository.findPopupAdminByFilter(
+            address, status, title, type, sorting, pageable // title 파라미터 추가
+        ))
+
+        // 필터링된 데이터를 가져옴
+        val popupPage = popupJpaRepository.findPopupAdminByFilter(
+            address, status, title, type, sorting, pageable // title 파라미터 추가
+        ).map { popup ->
+            modelMapper.map(popup, PopupTO::class.java)
+        }
+
+        // 데이터를 매핑하여 반환
+        return popupPage
     }
 
     // POST Popup
