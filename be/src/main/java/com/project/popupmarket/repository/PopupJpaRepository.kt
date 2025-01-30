@@ -18,7 +18,7 @@ interface PopupJpaRepository : JpaRepository<Popup, Long> {
 
     @Query(
         ("SELECT po " +
-                "FROM RentalLand po " +
+                "FROM Popup po " +
                 "WHERE po.customerId = :userId " +
                 "ORDER BY po.registeredAt DESC")
     )
@@ -35,27 +35,24 @@ interface PopupJpaRepository : JpaRepository<Popup, Long> {
         @Param("popupId") popupId: Long
     ): List<Popup>
 
-    @Query(
-        value = ("SELECT po " +
-                "FROM Popup po " +
-                "WHERE po.status = 'ACTIVE' " +
-                "AND (:location IS NULL OR po.targetLocation LIKE CONCAT('%', :location, '%')) " +
-                "AND (:type IS NULL OR po.type LIKE CONCAT('%', :type, '%')) " +
-                "AND (:age_group IS NULL OR po.age_group LIKE CONCAT('%', :age_group, '%')) " +
-                "AND po.start_date BETWEEN :startDate AND :endDate " +
-                "AND po.end_date BETWEEN :startDate AND :endDate " +
-                "ORDER BY " +
-                "CASE " +
-                "    WHEN :sorting = 'registered_desc' THEN po.registeredAt " +
-                "    WHEN :sorting = 'registered_asc' THEN po.registeredAt " +
-                "    WHEN :sorting = 'area_desc' THEN po.area " +
-                "    WHEN :sorting = 'area_asc' THEN po.area " +
-                "    WHEN :sorting = 'price_desc' THEN po.price " +
-                "    WHEN :sorting = 'price_asc' THEN po.price " +
-                "    ELSE po.registeredAt " +
-                "END " +
-                "DESC")
-    )
+    @Query("""
+    SELECT po 
+    FROM Popup po 
+    WHERE po.status = 'ACTIVE' 
+    AND (:targetLocation IS NULL OR po.address LIKE CONCAT('%', :targetLocation, '%')) 
+    AND (:type IS NULL OR po.type LIKE CONCAT('%', :type, '%')) 
+    AND (:targetAgeGroup IS NULL OR po.ageGroup = :targetAgeGroup) 
+    AND po.startDate BETWEEN :startDate AND :endDate 
+    AND po.endDate BETWEEN :startDate AND :endDate 
+    ORDER BY 
+    CASE 
+        WHEN :sorting = 'registered_desc' THEN po.registeredAt 
+        WHEN :sorting = 'registered_asc' THEN po.registeredAt 
+        WHEN :sorting = 'area_desc' THEN po.zipcode 
+        WHEN :sorting = 'area_asc' THEN po.zipcode 
+        ELSE po.registeredAt 
+    END DESC
+""")
     fun findFilteredWithPagination(
         @Param("targetLocation") targetLocation: String?,
         @Param("type") type: String?,

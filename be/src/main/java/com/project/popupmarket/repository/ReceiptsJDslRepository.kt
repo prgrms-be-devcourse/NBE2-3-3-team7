@@ -5,7 +5,7 @@ import com.project.popupmarket.dto.payment.ReceiptsInfoTO
 import com.project.popupmarket.dto.payment.ReservationTO
 import com.project.popupmarket.entity.Receipts
 
-interface ReceiptsQueryDslRepository {
+interface ReceiptsJDslRepository {
     fun reservationDateCheck(reservation: ReservationTO): Boolean
     fun getReceiptsByLandId(landId: Long): List<ReceiptsInfoTO>
     fun getReceiptsByCustomerId(customerId: Long): List<ReceiptsInfoTO>
@@ -13,4 +13,6 @@ interface ReceiptsQueryDslRepository {
     fun getRangeDates(landId: Long): List<RangeDateTO>
     fun updateReservationStatusToCanceledByOrderId(orderId: String): Long
     fun dailyUpdateReservationStatusToLeased(): Long
+    fun getCustomerName(customerId: Long): String
+    fun getLandTitle(landId: Long): String
 }

@@ -1,16 +1,12 @@
 package com.project.popupmarket.service.receipts
 
 import com.project.popupmarket.dto.payment.*
-import com.project.popupmarket.entity.QRentalLand
-import com.project.popupmarket.entity.QUser
 import com.project.popupmarket.entity.Receipts
 import com.project.popupmarket.entity.StagingPayment
 import com.project.popupmarket.enums.ReservationStatus
 import com.project.popupmarket.exception.custom.PaymentException
-import com.project.popupmarket.repository.ReceiptsQueryDslRepositoryImpl
 import com.project.popupmarket.repository.ReceiptsRepository
 import com.project.popupmarket.util.UserContextUtil
-import com.querydsl.jpa.impl.JPAQueryFactory
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -23,8 +19,6 @@ class PaymentService(
     private val receiptsRepository: ReceiptsRepository,
     private val tossRequestService: TossRequestService,
     private val userContextUtil: UserContextUtil,
-    private val queryFactory: JPAQueryFactory,
-    private val receiptsQueryDslRepositoryImpl: ReceiptsQueryDslRepositoryImpl
 ) {
     private val log = LoggerFactory.getLogger(PaymentService::class.java)
 
@@ -48,15 +42,11 @@ class PaymentService(
             throw IllegalArgumentException("이미 예약된 날짜입니다.")
         }
 
-        val user = queryFactory.selectFrom(QUser.user)
-            .where(QUser.user.id.eq(reservation.customerId))
-            .fetchOne()
+        val user = receiptsRepository.getCustomerName(reservation.customerId)
 
-        val rentalLand = queryFactory.selectFrom(QRentalLand.rentalLand)
-            .where(QRentalLand.rentalLand.id.eq(reservation.landId))
-            .fetchOne()
+        val land = receiptsRepository.getLandTitle(reservation.landId)
 
-        if (user == null || rentalLand == null) {
+        if (user == null || land == null) {
             throw IllegalArgumentException("사용자 또는 임대지를 찾을 수 없습니다.")
         }
 
@@ -107,7 +97,7 @@ class PaymentService(
             ?: throw IllegalArgumentException("해당 Order ID에 대한 StagingPayment를 찾을 수 없습니다.")
 
         val receipts = Receipts(
-            paymentKey = receipt.paymentKey,
+            paymentKey = receipt.paymentKey.toString(),
             orderId = receipt.orderId,
             customerId = receipt.customerId,
             rentalLandId = receipt.landId,
@@ -138,16 +128,16 @@ class PaymentService(
     }
 
     fun getReceiptsInfoByLandId(landId: Long): List<ReceiptsInfoTO> {
-        return receiptsQueryDslRepositoryImpl.getReceiptsByLandId(landId)
+        return receiptsRepository.getReceiptsByLandId(landId)
     }
 
     fun getReceiptsInfoByCustomerId(customerId: Long): List<ReceiptsInfoTO> {
-        return receiptsQueryDslRepositoryImpl.getReceiptsByCustomerId(customerId)
+        return receiptsRepository.getReceiptsByCustomerId(customerId)
     }
 
     @Transactional
     fun changeReservationStatus(orderId: String) {
-        val receipts = receiptsQueryDslRepositoryImpl.findReceiptsByOrderId(orderId)
+        val receipts = receiptsRepository.findReceiptsByOrderId(orderId)
             ?: throw IllegalArgumentException("해당 주문 번호에 대한 예약 정보를 찾을 수 없습니다.")
 
         val affected = receiptsRepository.updateReservationStatusToCanceledByOrderId(orderId)
@@ -165,6 +155,6 @@ class PaymentService(
     }
 
     fun getRangeDates(rentalPlaceSeq: Long): List<RangeDateTO> {
-        return receiptsQueryDslRepositoryImpl.getRangeDates(rentalPlaceSeq)
+        return receiptsRepository.getRangeDates(rentalPlaceSeq)
     }
 }
