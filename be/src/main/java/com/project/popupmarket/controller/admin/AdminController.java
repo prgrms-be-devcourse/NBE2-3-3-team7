@@ -1,16 +1,13 @@
 package com.project.popupmarket.controller.admin;
 
 import com.project.popupmarket.dto.admin.AdminReceiptsDTO;
-import com.project.popupmarket.dto.land.RentalLandRespTO;
 import com.project.popupmarket.dto.land.RentalLandTO;
 import com.project.popupmarket.enums.ActivateStatus;
 import com.project.popupmarket.enums.ReservationStatus;
-import com.project.popupmarket.service.AdminService;
+import com.project.popupmarket.service.admin.AdminService;
 import com.project.popupmarket.service.land.RentalLandService;
-import com.project.popupmarket.service.receipts.PaymentService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;

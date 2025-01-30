@@ -1,4 +1,4 @@
-package com.project.popupmarket.service;
+package com.project.popupmarket.service.admin;
 
 import com.project.popupmarket.dto.admin.AdminReceiptsDTO;
 import com.project.popupmarket.dto.land.RentalLandTO;
