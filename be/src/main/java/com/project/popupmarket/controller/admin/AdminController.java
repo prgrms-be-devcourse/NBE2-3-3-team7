@@ -2,10 +2,12 @@ package com.project.popupmarket.controller.admin;
 
 import com.project.popupmarket.dto.admin.AdminReceiptsDTO;
 import com.project.popupmarket.dto.land.RentalLandTO;
+import com.project.popupmarket.dto.popup.PopupTO;
 import com.project.popupmarket.enums.ActivateStatus;
 import com.project.popupmarket.enums.ReservationStatus;
 import com.project.popupmarket.service.admin.AdminService;
 import com.project.popupmarket.service.land.RentalLandService;
+import com.project.popupmarket.service.popup.PopupService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 public class AdminController {
 
     private final RentalLandService rentalLandService;
+    private final PopupService popupService;
     private final AdminService adminService;
 
     @GetMapping("/lands")
@@ -39,6 +42,27 @@ public class AdminController {
     @Operation(summary = "개별 임대지 삭제")
     public ResponseEntity<Void> deleteLand(@PathVariable Long id) {
         rentalLandService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/popups")
+    @Operation(summary = "조건에 해당하는 팝업 리스트")
+    public ResponseEntity<Page<PopupTO>> getPopupsByFilter(
+            @RequestParam(required = false) String address,
+            @RequestParam(required = false) ActivateStatus status,
+            @RequestParam(required = false) String sorting,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String type,
+            @PageableDefault(size = 20) Pageable pageable
+    ) {
+        Page<PopupTO> popupTO = popupService.findPopupAdminByFilter(address, status, title, type, sorting, pageable);
+        return ResponseEntity.ok(popupTO);
+    }
+
+    @DeleteMapping("/popup/{id}")
+    @Operation(summary = "개별 임대지 삭제")
+    public ResponseEntity<Void> deletePopup(@PathVariable Long id) {
+        popupService.deletePopupById(id);
         return ResponseEntity.noContent().build();
     }
 
