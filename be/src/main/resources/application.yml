@@ -50,6 +50,5 @@ jwt:
   
 payment:
   toss:
-    test_client_api_key: ${TOSS_TEST_CLIENT_KEY}
     test_secret_api_key: ${TOSS_TEST_SECRET_KEY}
 

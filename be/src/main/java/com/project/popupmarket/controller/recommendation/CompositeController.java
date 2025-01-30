@@ -32,7 +32,7 @@ public class CompositeController {
     @GetMapping("/main/new")
     @Operation(summary = "메인 페이지 최신 데이터 각각 10개 조회")
     public ResponseEntity<RecommendItemTO> getNewData() {
-        return ResponseEntity.ok(new RecommendItemTO(popupStoreService.findWithLimit(), rentalLandService.findWithLimit()));
+        return ResponseEntity.ok(new RecommendItemTO(popupStoreService.findWithLimit(), rentalLandService.findByLimit()));
     }
 
 //    @GetMapping("/popup/view/{popupSeq}")
@@ -49,17 +49,17 @@ public class CompositeController {
 //        return ResponseEntity.ok(new PopupDetailRespTO(rentalLandService.findUserRentalPlaceInfo(userSeq, popupSeq), new PopupStoreImgDTO(to, imgLst)));
 //    }
 
-    @GetMapping("/land/view/{placeSeq}")
+    @GetMapping("/land/view/{landId}")
     @Operation(summary = "개별 임대지 조회 (feat. 예약 날짜)")
-    public ResponseEntity<PlaceDetailRespTO> getPlaceBySeqWithReservationPeriod(@PathVariable Long placeSeq) {
-        RentalLandRespTO to = rentalLandService.getUserWithImages(placeSeq);
+    public ResponseEntity<PlaceDetailRespTO> getPlaceBySeqWithReservationPeriod(@PathVariable Long landId) {
+        RentalLandRespTO to = rentalLandService.findRentalLandById(landId);
 //        List<RentalPlaceImageTO> imageTo = rentalLandService.findRentalPlaceImageList(placeSeq);
 
         if (to == null) {
             return ResponseEntity.status(404).build();
         }
 
-        return ResponseEntity.ok(new PlaceDetailRespTO(paymentService.getRangeDates(placeSeq), null));
+        return ResponseEntity.ok(new PlaceDetailRespTO(paymentService.getRangeDates(landId), null));
     }
 
     @GetMapping("/test/data")
