@@ -34,33 +34,36 @@ interface RentalLandJpaRepository : JpaRepository<RentalLand, Long> {
     )
     fun findActivatedRentalPlacesByUserId(
         @Param("userId") userId: Long,
-        @Param("popupId") popupId: Long
+        @Param("popupId") popupId: Long,
     ): List<RentalLand>
 
 
     @Query(
-        value = ("SELECT rp " +
-                "FROM RentalLand rp " +
-                "WHERE rp.status = 'ACTIVE' " +
-                "AND rp.area BETWEEN :minArea AND :maxArea " +
-                "AND (:location IS NULL OR rp.address LIKE %:location%) " +
-                "AND rp.price BETWEEN :minPrice AND :maxPrice " +
-                "AND NOT EXISTS (" +
-                "   SELECT 1 FROM Receipts r " +
-                "   WHERE r.rentalLandId = rp.id " +
-                "   AND (r.startDate <= :endDate AND r.endDate >= :startDate) " +
-                "   AND r.reservationStatus != 'CANCELED'" +
-                ")" +
-                "ORDER BY " +
-                "CASE WHEN :sorting = 'registered_desc' THEN rp.registeredAt END DESC, " +
-                "CASE WHEN :sorting = 'registered_asc' THEN rp.registeredAt END ASC, " +
-                "CASE WHEN :sorting = 'area_desc' THEN rp.area END DESC, " +
-                "CASE WHEN :sorting = 'area_asc' THEN rp.area END ASC, " +
-                "CASE WHEN :sorting = 'price_desc' THEN rp.price END DESC, " +
-                "CASE WHEN :sorting = 'price_asc' THEN rp.price END ASC, " +
-                "CASE WHEN :sorting IS NULL OR :sorting = '' THEN rp.registeredAt END DESC," +
-                "CASE WHEN :sorting NOT IN ('registered_desc', 'registered_asc') THEN rp.registeredAt END DESC")
+        """
+        SELECT rp
+        FROM RentalLand rp
+        WHERE rp.status = 'ACTIVE' 
+        AND rp.area BETWEEN :minArea AND :maxArea 
+        AND (:location IS NULL OR rp.address LIKE %:location%) 
+        AND rp.price BETWEEN :minPrice AND :maxPrice 
+        AND NOT EXISTS (
+            SELECT 1 FROM Receipts r 
+            WHERE r.rentalLandId = rp.id 
+            AND (r.startDate <= :endDate AND r.endDate >= :startDate) 
+            AND r.reservationStatus != 'CANCELED'
+        )
+        ORDER BY 
+        CASE WHEN :sorting = 'registered_desc' THEN rp.registeredAt END DESC, 
+        CASE WHEN :sorting = 'registered_asc' THEN rp.registeredAt END ASC, 
+        CASE WHEN :sorting = 'area_desc' THEN rp.area END DESC, 
+        CASE WHEN :sorting = 'area_asc' THEN rp.area END ASC, 
+        CASE WHEN :sorting = 'price_desc' THEN rp.price END DESC, 
+        CASE WHEN :sorting = 'price_asc' THEN rp.price END ASC, 
+        CASE WHEN :sorting IS NULL OR :sorting = '' THEN rp.registeredAt END DESC,
+        CASE WHEN :sorting NOT IN ('registered_desc', 'registered_asc') THEN rp.registeredAt END DESC
+        """
     )
+
     fun findByFilter(
         @Param("minArea") minArea: Int?,
         @Param("maxArea") maxArea: Int?,
@@ -70,7 +73,7 @@ interface RentalLandJpaRepository : JpaRepository<RentalLand, Long> {
         @Param("startDate") startDate: LocalDate?,
         @Param("endDate") endDate: LocalDate?,
         @Param("sorting") sorting: String?,
-        pageable: Pageable?
+        pageable: Pageable?,
     ): Page<RentalLand>
 
     @Query(

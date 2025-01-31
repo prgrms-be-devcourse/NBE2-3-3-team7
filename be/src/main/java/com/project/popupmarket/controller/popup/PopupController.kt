@@ -1,6 +1,5 @@
 package com.project.popupmarket.controller.popup
 
-import com.project.popupmarket.repository.PopupJpaRepository
 import com.project.popupmarket.service.popup.PopupService
 import io.swagger.v3.oas.annotations.Operation
 import org.springframework.http.ResponseEntity
@@ -29,17 +28,19 @@ class PopupController (
     @GetMapping("/popup/list")
     @Operation(summary = "조건에 해당하는 팝업 리스트")
     fun rentalListPagination( // 팝업 리스트 페이지 9개 + 필터링 + 페이지네이션
-        @RequestParam(required = false) targetLocation: String?,
+        @RequestParam(required = false) location: String?,
         @RequestParam(required = false) type: String?,
-        @RequestParam(required = false) targetAgeGroup: String?,
+        @RequestParam(required = false) ageGroup: String?,
         @RequestParam(required = false) startDate: LocalDate?,  // 시작일
         @RequestParam(required = false) endDate: LocalDate?,  // 종료일
         @RequestParam(required = false) sorting: String?,  // 정렬 기준
         @RequestParam(defaultValue = "0") page: Int
-    ): Page<PopupRespTO> {
+    ): ResponseEntity<Page<PopupRespTO>> {
         val pageable: Pageable = PageRequest.of(page, 9)
 
-        return popupService.findFilterWithPagination(targetLocation, type, targetAgeGroup, startDate, endDate, sorting, pageable)
+        println("$location, $type, $ageGroup, $startDate, $endDate, $sorting")
+
+        return ResponseEntity.ok(popupService.findFilterWithPagination(location, type, ageGroup, startDate, endDate, sorting, pageable))
     }
 
     // [ READ ] - 2

@@ -1,21 +1,22 @@
 <script setup>
 import { RouterLink } from 'vue-router';
 defineProps({
-	link: String,
-	image: String,
-	title: String,
-	type: String,
-	location: String,
-	start: String,
-	end: String,
+	item: {
+		type: Object,
+		required: true,
+	},
+	thumbnail: {
+		type: String,
+		required: true,
+	},
 });
 </script>
 
 <template>
-	<router-link :to="link" class="group drop-shadow-lg relative p-4 border m-2 rounded-lg border-gray-300">
+	<router-link :to="`/land/${item.id}`" class="group drop-shadow-lg relative p-4 border m-2 rounded-lg border-gray-300">
 		<div class="absolute w-full h-full bg-gray-300 opacity-0 group-hover:opacity-50 transition left-0 top-0"></div>
 		<div class="mt-2 block relative overflow-hidden rounded-lg border border-gray-400">
-			<img class="w-full  h-44 object-contain bg-gray-100" :src="image" :alt="title">
+			<img class="w-full  h-44 object-contain bg-gray-100" :src="thumbnail" :alt="item.title">
 			<div class="absolute bottom-1 end-1 opacity-0 group-hover:opacity-100 transition">
 				<div
 					class="flex items-center z-10 gap-x-1 py-1 px-2 bg-white border border-gray-200 text-gray-800 rounded-lg">
@@ -29,11 +30,11 @@ defineProps({
 			</div>
 		</div>
 		<div class="space-y-2 mt-4">
-			<h3 class="text-lg font-semibold text-gray-900">{{ title }}</h3>
-			<h3 class="font-semibold text-gray-900">{{ `${start} ~ ${end}` }}</h3>
+			<h3 class="text-lg font-semibold text-gray-900">{{ item.title }}</h3>
+			<h3 class="font-semibold text-gray-900">{{ `${item.price.toLocaleString()}원 / 일` }}</h3>
 			<div class="flex justify-between">
-				<span>{{ location }}</span>
-				<span>{{ type }}</span>
+				<span>{{ item.address }}</span>
+				<span>{{ `${item.area}평` }}</span>
 			</div>
 		</div>
 	</router-link>

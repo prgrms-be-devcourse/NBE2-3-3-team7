@@ -1,7 +1,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { countStore } from '@/store/count';
-import data from '@/services/test.api'
+import { testApi } from '@/services/test.api'
+import { popupList } from '@/services/popup/popup.list';
 
 const store = countStore();
 
@@ -14,6 +15,7 @@ const error = ref(null); // 에러 상태
 
 onMounted(() => {
 	fetchApiData(); // API 데이터 호출
+	fetchPopupList();
 });
 
 const increment = () => {
@@ -24,13 +26,28 @@ const increment = () => {
 const fetchApiData = async () => {
 	loading.value = true;
 	error.value = null;
+
 	try {
-		const result = await data.testApi(); // testApi 호출
-		apiData.value = result; // 받은 데이터를 apiData에 저장
+		const result = await testApi(); // 에러 발생 시 catch로 이동
+		apiData.value = result;
 	} catch (err) {
-		error.value = err; // 에러 처리
+		error.value = err instanceof Error ? err.message : '알 수 없는 오류 발생';
+		console.error('API 요청 오류:', err);
 	} finally {
-		loading.value = false; // 로딩 상태 종료
+		loading.value = false;
+	}
+};
+
+const fetchPopupList = async () => {
+
+	try {
+		const result = await popupList(); // 에러 발생 시 catch로 이동
+		apiData.value = result;
+	} catch (err) {
+		error.value = err instanceof Error ? err.message : '알 수 없는 오류 발생';
+		console.error('API 요청 오류:', err);
+	} finally {
+		loading.value = false;
 	}
 };
 
@@ -46,6 +63,11 @@ const fetchApiData = async () => {
 	<div v-if="apiData">
 		<span>API Data : </span>
 		<span>{{ apiData }}</span>
+	</div>
+	<div>
+		<!-- Test Data -->
+		<span>Popup Data : </span>
+		<span>{{ popupData }}</span>
 	</div>
 </template>
 

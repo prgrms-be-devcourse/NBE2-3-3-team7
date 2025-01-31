@@ -19,10 +19,10 @@ import java.math.BigDecimal
 import java.time.LocalDate
 
 @Service
-open class RentalLandService(
+class RentalLandService(
     private val rentalLandJpaRepository: RentalLandJpaRepository,
-    private val s3FileService: S3FileService
-    ){
+    private val s3FileService: S3FileService,
+) {
 
     fun findById(id: Long): RentalLandTO {
         return rentalLandJpaRepository.findById(id)
@@ -37,7 +37,7 @@ open class RentalLandService(
         minArea: Int?, maxArea: Int?, location: String?,
         minPrice: BigDecimal?, maxPrice: BigDecimal?,
         startDate: LocalDate?, endDate: LocalDate?,
-        sorting: String?, pageable: Pageable?
+        sorting: String?, pageable: Pageable?,
     ): Page<RentalLandRespTO> {
         val modelMapper = ModelMapper()
         val rentalLandRespTO = rentalLandJpaRepository
@@ -46,7 +46,7 @@ open class RentalLandService(
                 minPrice, maxPrice,
                 startDate, endDate, sorting, pageable
             )
-            .map<RentalLandRespTO> { rp: RentalLand ->
+            .map { rp: RentalLand ->
                 val rentalLandTO = modelMapper.map(rp, RentalLandTO::class.java)
                 val thumbnailFilePath = "land/${rentalLandTO.id}_thumbnail.png"
                 val thumbnailUrl = s3FileService.getCloudFrontImageUrl(thumbnailFilePath)
@@ -56,10 +56,7 @@ open class RentalLandService(
                 respTO.thumbnail = thumbnailUrl
                 respTO
             }
-        if (rentalLandRespTO.isEmpty) {
-            // 데이터가 없을 경우 예외 발생
-            throw ResourceNotFoundException("임대 가능한 공간이 없습니다.")
-        }
+
         return rentalLandRespTO
     }
 
@@ -81,7 +78,7 @@ open class RentalLandService(
                 respTO.images = imageUrls
                 respTO
             }
-            .orElseThrow{ ResourceNotFoundException("${id}번 의 임대지 게시글이 없습니다.") }
+            .orElseThrow { ResourceNotFoundException("${id}번 의 임대지 게시글이 없습니다.") }
     }
 
     //  2 - 3. Read : 관리 중인 임대지 목록
@@ -89,7 +86,7 @@ open class RentalLandService(
         val modelMapper = ModelMapper()
 
         val rentalLandRespTO = rentalLandJpaRepository.findByUserId(userSeq)
-            .map{ rp ->
+            .map { rp ->
                 val rentalLandTO = modelMapper.map(rp, RentalLandTO::class.java)
 
                 val thumbnailFilePath = "land/${rentalLandTO.id}_thumbnail.png"
@@ -112,7 +109,7 @@ open class RentalLandService(
     fun findByLimit(): List<RentalLandRespTO> {
         val modelMapper = ModelMapper()
         val rentalLandRespTO = rentalLandJpaRepository.findByLimit()
-            .map{ rp: RentalLand ->
+            .map { rp: RentalLand ->
                 val rentalLandTO = modelMapper.map(rp, RentalLandTO::class.java)
                 val thumbnailFilePath = "land/${rentalLandTO.id}_thumbnail.png"
                 val thumbnailUrl = s3FileService.getCloudFrontImageUrl(thumbnailFilePath)
@@ -137,7 +134,7 @@ open class RentalLandService(
     fun findLandAdminByFilter(
         address: String?, status: ActivateStatus?,
         title: String?, // title 추가
-        sorting: String?, pageable: Pageable?
+        sorting: String?, pageable: Pageable?,
     ): Page<RentalLandTO> {
         val modelMapper = ModelMapper()
 
@@ -154,10 +151,10 @@ open class RentalLandService(
 
     // 1. Create : 임대지 추가
     @Transactional
-    open fun insert(
+    fun insert(
         to: RentalLandTO,
         thumbnail: MultipartFile,
-        images: List<MultipartFile>
+        images: List<MultipartFile>,
     ) {
         try {
             val mapper = ModelMapper()
@@ -189,7 +186,7 @@ open class RentalLandService(
 
     // 3. Update : 임대지 상태 변경 -> [ACTIVE, INACTIVE]
     @Transactional
-    open fun updateStatus(id: Long, status: String) {
+    fun updateStatus(id: Long, status: String) {
         try {
             val changedStatus = ActivateStatus.valueOf(status)
 
@@ -201,7 +198,7 @@ open class RentalLandService(
 
     // 4 - 1 . Delete : 임대지 이미지 삭제
     @Transactional
-    open fun delete(id: Long) {
+    fun delete(id: Long) {
         // DB에서 삭제 대상 확인
 
         val exists = rentalLandJpaRepository.existsById(id)
@@ -222,7 +219,7 @@ open class RentalLandService(
 
     // 4 - 2. Delete : 임대지 이미지 삭제
     @Transactional
-    open fun deleteImage(id: Long) {
+    fun deleteImage(id: Long) {
         try {
             s3FileService.deleteFiles("land", id)
         } catch (e: Exception) {

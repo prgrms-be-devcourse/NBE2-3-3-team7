@@ -19,7 +19,7 @@ import org.springframework.web.multipart.MultipartFile
 import java.time.LocalDate
 
 @Service
-open class PopupService(
+class PopupService(
     private val popupJpaRepository: PopupJpaRepository,
     private val s3FileService: S3FileService
 ) {
@@ -67,19 +67,10 @@ open class PopupService(
                 targetLocation, type, targetAgeGroup, startDate, endDate,
                 sorting, pageable
             )
-            .map<PopupRespTO> { po: Popup ->
-                val popupTO = modelMapper.map(po, PopupTO::class.java)
-                val thumbnailFilePath = "popup/${popupTO.id}_thumbnail.png"
-                val thumbnailUrl = s3FileService.getCloudFrontImageUrl(thumbnailFilePath)
-
-                val respTO = PopupRespTO()
-                respTO.popup = popupTO
-                respTO.thumbnail = thumbnailUrl
-                respTO
+            .map { po: Popup ->
+                mappedPopupRespTO(po)
             }
-        if (popupRespTO.isEmpty) {
-            throw ResourceNotFoundException("조건에 해당하는 팝업이 없습니다.")
-        }
+
         return popupRespTO
     }
 
@@ -89,15 +80,7 @@ open class PopupService(
 
         val popupRespTO = popupJpaRepository.findPopupByUserId(userSeq)
             .map{ po ->
-                val popupTO = modelMapper.map(po, PopupTO::class.java)
-
-                val thumbnailFilePath = "popup/${popupTO.id}_thumbnail.png"
-                val thumbnailUrl = s3FileService.getCloudFrontImageUrl(thumbnailFilePath)
-
-                val respTO = PopupRespTO()
-                respTO.popup = popupTO
-                respTO.thumbnail = thumbnailUrl
-                respTO
+                mappedPopupRespTO(po)
             }
         if (popupRespTO.isEmpty()) {
             throw ResourceNotFoundException("사용자의 팝업 리스트가 없습니다.")
@@ -108,17 +91,10 @@ open class PopupService(
     // 4. GET Main Popup
     fun findWithLimit(): List<PopupRespTO> {
         val modelMapper = ModelMapper()
+
         val popupRespTO = popupJpaRepository.findWithLimit()
             .map{ po ->
-                val popupTO = modelMapper.map(po, PopupTO::class.java)
-
-                val thumbnailFilePath = "popup/${popupTO.id}_thumbnail.png"
-                val thumbnailUrl = s3FileService.getCloudFrontImageUrl(thumbnailFilePath)
-
-                val respTO = PopupRespTO()
-                respTO.popup = popupTO
-                respTO.thumbnail = thumbnailUrl
-                respTO
+                mappedPopupRespTO(po)
             }
         if (popupRespTO.isEmpty()) {
             throw ResourceNotFoundException("팝업에 대한 데이터가 없습니다.")
@@ -151,7 +127,7 @@ open class PopupService(
 
     // POST Popup
     @Transactional
-    open fun createPopup(
+    fun createPopup(
         to: PopupTO,
         thumbnail: MultipartFile,
         images: List<MultipartFile>
@@ -186,7 +162,7 @@ open class PopupService(
 
     // PUT Popup : 팝업 상태 변경 -> [ACTIVE, INACTIVE]
     @Transactional
-    open fun updatePopupStatus(id: Long, status: String) {
+    fun updatePopupStatus(id: Long, status: String) {
         try {
             val changedStatus = ActivateStatus.valueOf(status)
 
@@ -198,7 +174,7 @@ open class PopupService(
 
     // Delete Popup
     @Transactional
-    open fun deletePopupById(id: Long) {
+    fun deletePopupById(id: Long) {
         val exists = popupJpaRepository.existsById(id)
         if (!exists) {
             throw ResourceNotFoundException("$id 번호의 팝업 게시글이 존재하지 않습니다.")
@@ -217,11 +193,38 @@ open class PopupService(
 
     // Delete Popup Images
     @Transactional
-    open fun deletePopupImageById(id: Long) {
+    fun deletePopupImageById(id: Long) {
         try {
             s3FileService.deleteFiles("popup", id)
         } catch (e: Exception) {
             throw S3Exception("$id 번호의 이미지 파일을 삭제하지 못했습니다.", e)
         }
+    }
+
+    private fun mappedPopupRespTO(po: Popup): PopupRespTO{
+        val popupTO = PopupTO(
+            id = po.id,
+            customerId = po.customerId,
+            type = po.type,
+            zipcode = po.zipcode,
+            address = po.address,
+            addrDetail = po.addrDetail,
+            title = po.title,
+            description = po.description,
+            infra = po.infra,
+            startDate = po.startDate,
+            endDate = po.endDate,
+            ageGroup = po.ageGroup?.desc,
+            registeredAt = po.registeredAt,
+            status = po.status?.toString()
+        )
+
+        val thumbnailFilePath = "popup/${popupTO.id}_thumbnail.png"
+        val thumbnailUrl = s3FileService.getCloudFrontImageUrl(thumbnailFilePath)
+
+        return PopupRespTO(
+            popup = popupTO,
+            thumbnail = thumbnailUrl,
+        )
     }
 }

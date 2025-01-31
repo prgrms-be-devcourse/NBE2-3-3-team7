@@ -87,10 +87,12 @@ export const initSingleFlatpickr = () => {
 	
 };
 
-export function initPriceSlider(minPrice, maxPrice, store) {
+export function initPriceSlider(store) {
 	const slider = document.getElementById('price-slider');
+	if (!slider) return;
+
 	noUiSlider.create(slider, {
-		start: [minPrice.value, maxPrice.value],
+		start: [store.minPrice, store.maxPrice],
 		connect: true,
 		range: {
 			min: 0,
@@ -98,47 +100,53 @@ export function initPriceSlider(minPrice, maxPrice, store) {
 		},
 		format: {
 			to: function (value) {
-				if (value >= 10000000) return Math.round(value / 10000) + '만원 이상';
+				if (value >= 10000000) return Math.round(value / 10000) + '만원';
 				return Math.round(value / 10000) + '만원';
 			},
 			from: function (value) {
-				return Number(value.replace(/만원\s?(이상)?/, '')) * 10000;
+				return Number(value.replace(/만원/, '0000'));
 			}
 		}
 	});
 
 	const priceRange = document.getElementById('price-range');
 	slider.noUiSlider.on('update', function (values) {
-		store.setMin(Number(values[0].replace(/만원\s?(이상)?/, '0000')));
-		store.setMax(Number(values[1].replace(/만원\s?(이상)?/, '0000')));
+		store.setPriceRange(
+			Number(values[0].replace(/만원/, '0000')),
+			Number(values[1].replace(/만원/, '0000'))
+		);
 		priceRange.innerText = values.join(' ~ ');
 	});
 }
 
-export function initAreaSlider(minArea, maxArea, store) {
+export function initAreaSlider(store) {
 	const slider = document.getElementById('area-slider');
+	if (!slider) return;
+	
 	noUiSlider.create(slider, {
-		start: [minArea.value, maxArea.value],
+		start: [store.minArea, store.maxArea],
 		connect: true,
 		range: {
 			min: 0,
-			max: 100
+			max: 200
 		},
 		format: {
 			to: function (value) {
-				if (value >= 100) return Math.round(value) + '평 이상';
+				if (value >= 200) return Math.round(value) + '평';
 				return Math.round(value) + '평';
 			},
 			from: function (value) {
-				return Number(value.replace(/평\s?(이상)?/, ''));
+				return Number(value.replace(/평/, ''));
 			}
 		}
 	});
 
 	const areaRange = document.getElementById('area-range');
 	slider.noUiSlider.on('update', function (values) {
-		store.setMin(Number(values[0].replace(/평\s?(이상)?/, '')));
-		store.setMax(Number(values[1].replace(/평\s?(이상)?/, '')));
+		store.setAreaRange(
+			Number(values[0].replace(/평/, '')),
+			Number(values[1].replace(/평/, ''))
+		);
 		areaRange.innerText = values.join(' ~ ');
 	});
 }

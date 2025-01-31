@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { initSingleFlatpickr } from '@/utils/init.plugin';
 import { useSignupStore } from '@/store/signup';
-import { validateBusinessman } from '@/services/businessman.api'
+import { validateBusinessman } from '@/services/common/businessman.api'
 
 const router = useRouter();
 

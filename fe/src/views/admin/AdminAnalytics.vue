@@ -86,9 +86,7 @@ const chartOptions = {
 		<div class="flex justify-start items-center mb-6">
 			<h1 class="text-2xl font-bold text-gray-700">데이터 분석 및 통계</h1>
 		</div>
-		<div class="bg-white shadow border border-gray-200 rounded-lg p-4 mb-6">
-			<h2 class="text-gray-500 font-bold mb-4">지역별 수익 통계</h2>
-			<div class="flex items-center space-x-4 py-2">
+		<div class="flex items-center space-x-4 py-2">
 				<div class="bg-white min-w-60 border shadow px-4 border-gray-200 rounded-md p-2">
 					<label class="font-bold">데이터 유형</label>
 					<select class="w-full" v-model="selectedMetric">
@@ -109,7 +107,13 @@ const chartOptions = {
 					</select>
 				</div>
 			</div>
+		<div class="bg-white shadow border border-gray-200 rounded-lg p-4 mb-6">
+			<h2 class="text-gray-500 font-bold mb-4">지역별 수익 통계</h2>
+			
 			<BarChart :chartData="chartData" :options="chartOptions" />
+		</div>
+		<div>
+			원형차트 지역
 		</div>
 	</main>
 </template>

@@ -2,10 +2,11 @@ package com.project.popupmarket.controller.land
 
 import com.project.popupmarket.dto.land.RentalLandRespTO
 import com.project.popupmarket.dto.land.RentalLandTO
+import com.project.popupmarket.dto.land.LandDetailResponse
 import com.project.popupmarket.service.land.RentalLandService
+import com.project.popupmarket.service.receipts.PaymentService
 import com.project.popupmarket.util.UserContextUtil
 import io.swagger.v3.oas.annotations.Operation
-import lombok.RequiredArgsConstructor
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
@@ -14,16 +15,15 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
-import java.io.IOException
 import java.math.BigDecimal
 import java.time.LocalDate
 
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api")
-class RentalLandController (
+class RentalLandController(
     private val rentalLandService: RentalLandService,
-    private val userContextUtil: UserContextUtil
+    private val userContextUtil: UserContextUtil,
+    private val paymentService: PaymentService
 ) {
 
     // [ READ ] - 1
@@ -40,19 +40,19 @@ class RentalLandController (
         @RequestParam(required = false) endDate: LocalDate?,  // 종료일
         @RequestParam(required = false) sorting: String?,  // 정렬 기준
         @RequestParam(defaultValue = "0") page: Int
-    ): Page<RentalLandRespTO> {
+    ): ResponseEntity<Page<RentalLandRespTO>> {
 //        GET /list?page=0 -> 초기 값
 //        GET /list?minArea=30&maxArea=70&location=서울&minPrice=100000&maxPrice=9000000&page=0
         //Capacity, Price, Name, Thumbnail
 
-        val minA = minArea ?: 1
-        val maxA = maxArea ?: 500
-        val minP = minPrice ?: BigDecimal(1)
+        val minA = minArea ?: 0
+        val maxA = maxArea ?: 200
+        val minP = minPrice ?: BigDecimal(0)
         val maxP = maxPrice ?: BigDecimal(10000000)
 
         val pageable: Pageable = PageRequest.of(page, 9)
 
-        return rentalLandService.findByFilter(minA, maxA, location, minP, maxP, startDate, endDate, sorting, pageable)
+        return ResponseEntity.ok(rentalLandService.findByFilter(minA, maxA, location, minP, maxP, startDate, endDate, sorting, pageable))
 
     }
 
@@ -73,6 +73,20 @@ class RentalLandController (
         val userSeq = userContextUtil.userId ?: throw IllegalStateException("사용자 ID가 필요합니다")
 
         return rentalLandService.findByUserId(userSeq)
+    }
+
+    // [ Read ] - 4 : 임대지 상세 보기
+    @GetMapping("/land/view/{landId}")
+    @Operation(summary = "개별 임대지 조회 (feat. 예약 날짜)")
+    fun getPlaceBySeqWithReservationPeriod(@PathVariable landId: Long): ResponseEntity<LandDetailResponse> {
+        val rentalLand = rentalLandService.findRentalLandById(landId)
+        val reservationDates = paymentService.getRangeDates(landId)
+        return ResponseEntity.ok(
+            LandDetailResponse(
+                reservationDates,
+                rentalLand
+            )
+        )
     }
 
     // [ CREATE ]
