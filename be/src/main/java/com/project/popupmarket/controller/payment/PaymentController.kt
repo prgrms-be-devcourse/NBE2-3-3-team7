@@ -26,7 +26,7 @@ class PaymentController(
         @RequestParam end: LocalDate
     ): ResponseEntity<ReservationInfoResponse> {
         val reservation = ReservationTO(
-            customerId = userContextUtil.getUserId(),
+            customerId = userContextUtil.userId ?: throw IllegalStateException("사용자 ID가 필요합니다"),
             landId = landId,
             start = start,
             end = end
@@ -39,8 +39,8 @@ class PaymentController(
     @PostMapping("/payment")
     @Operation(summary = "임시 결제 내역 추가")
     fun payment(@RequestBody receipt: ReceiptsTO): ResponseEntity<Void> {
-        val customerId = userContextUtil.getUserId()
-        receipt.customerId = customerId
+        val customerId = userContextUtil.userId
+        receipt.customerId = customerId ?: throw IllegalStateException("사용자 ID가 필요합니다")
         paymentService.insertStagingPayment(receipt)
         return ResponseEntity.ok().build()
     }
@@ -62,7 +62,7 @@ class PaymentController(
     @GetMapping("/receipt")
     @Operation(summary = "사용자 결제 내역 리스트 조회")
     fun receipt(): ResponseEntity<List<ReceiptsInfoTO>> {
-        val userId = userContextUtil.getUserId()
+        val userId = userContextUtil.userId ?: throw IllegalStateException("사용자 ID가 필요합니다")
         return ResponseEntity.ok(paymentService.getReceiptsInfoByCustomerId(userId))
     }
 

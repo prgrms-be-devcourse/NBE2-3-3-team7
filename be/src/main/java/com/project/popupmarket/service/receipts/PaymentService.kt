@@ -25,7 +25,7 @@ class PaymentService(
     @Transactional
     fun paymentProcess(payment: TossPaymentTO) {
         val receipt = tossRequestService.requestPayment(payment)
-        receipt.customerId = userContextUtil.getUserId()
+        receipt.customerId = userContextUtil.userId ?: throw IllegalStateException("사용자 ID가 필요합니다")
 
         try {
             insertReceipt(receipt)

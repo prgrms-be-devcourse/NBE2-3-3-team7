@@ -56,7 +56,7 @@ class PopupController (
     @GetMapping("/popup/user")
     @Operation(summary = "사용자 팝업 리스트")
     fun userPopupList(): List<PopupRespTO> {
-        val userSeq = userContextUtil.userId
+        val userSeq = userContextUtil.userId ?: throw IllegalStateException("사용자 ID가 필요합니다")
 
         return popupService.findPopupByUserId(userSeq)
     }
