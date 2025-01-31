@@ -81,6 +81,13 @@ interface PopupJpaRepository : JpaRepository<Popup, Long> {
         pageable: Pageable?
     ): Page<Popup>
 
+    @Query("""
+    SELECT p.status, COUNT(p) 
+    FROM Popup p 
+    GROUP BY p.status"""
+    )
+    fun countPopupsByStatus(): List<Array<Any>>
+
     @Query("SELECT p.customerId FROM Popup p WHERE p.id = :id")
     fun findUserSeqById(@Param("id") id: Long): Long
 
