@@ -87,6 +87,13 @@ interface RentalLandJpaRepository : JpaRepository<RentalLand, Long> {
         pageable: Pageable?
     ): Page<RentalLand>
 
+    @Query("""
+    SELECT rl.status, COUNT(rl) 
+    FROM RentalLand rl 
+    GROUP BY rl.status"""
+    )
+    fun countRentalLandsByStatus(): List<Array<Any>>
+
     @Modifying
     @Query("DELETE FROM RentalLand r WHERE r.id = :id")
     fun deleteRentalLandById(@Param("id") id: Long)
