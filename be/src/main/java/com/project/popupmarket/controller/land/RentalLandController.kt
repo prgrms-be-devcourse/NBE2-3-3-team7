@@ -70,7 +70,7 @@ class RentalLandController (
     @GetMapping("/land/user")
     @Operation(summary = "사용자 임대지 리스트")
     fun userRentalList(): List<RentalLandRespTO> {
-        val userSeq = userContextUtil.userId
+        val userSeq = userContextUtil.userId ?: throw IllegalStateException("사용자 ID가 필요합니다")
 
         return rentalLandService.findByUserId(userSeq)
     }
