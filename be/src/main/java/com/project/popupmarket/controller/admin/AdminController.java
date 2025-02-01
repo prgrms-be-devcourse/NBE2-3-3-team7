@@ -3,6 +3,7 @@ package com.project.popupmarket.controller.admin;
 //import com.project.popupmarket.dto.admin.AdminDashboardTO;
 import com.project.popupmarket.dto.admin.AdminDashboardSummaryTO;
 import com.project.popupmarket.dto.admin.AdminDashboardTO;
+import com.project.popupmarket.dto.admin.AdminPeriodAnalyticsTO;
 import com.project.popupmarket.dto.admin.AdminReceiptsDTO;
 import com.project.popupmarket.dto.land.RentalLandTO;
 import com.project.popupmarket.dto.popup.PopupTO;
@@ -12,6 +13,8 @@ import com.project.popupmarket.service.admin.AdminService;
 import com.project.popupmarket.service.land.RentalLandService;
 import com.project.popupmarket.service.popup.PopupService;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -79,6 +82,19 @@ public class AdminController {
     @GetMapping("/dashboard")
     public ResponseEntity<AdminDashboardSummaryTO> getWeeklyDashboard() {
         return ResponseEntity.ok(adminService.getWeeklyDashboard());
+    }
+
+    @GetMapping("/analytics/daily")
+    public ResponseEntity<AdminPeriodAnalyticsTO> getDailyAnalytics(
+            @RequestParam(defaultValue = "7") int days
+    ) {
+        return ResponseEntity.ok(adminService.getDailyAnalytics(days - 1));
+    }
+    @GetMapping("/analytics/monthly")
+    public ResponseEntity<AdminPeriodAnalyticsTO> getMonthlyAnalytics(
+            @RequestParam(defaultValue = "6") int months
+    ) {
+        return ResponseEntity.ok(adminService.getMonthlyAnalytics(months - 1));
     }
 
     // [ Delete ] - 1 

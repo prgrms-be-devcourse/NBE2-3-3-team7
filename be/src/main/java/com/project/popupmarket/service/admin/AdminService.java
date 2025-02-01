@@ -1,10 +1,7 @@
 package com.project.popupmarket.service.admin;
 
 //import com.project.popupmarket.dto.admin.AdminDashboardTO;
-import com.project.popupmarket.dto.admin.AdminDashboardSummaryTO;
-import com.project.popupmarket.dto.admin.AdminDashboardTO;
-import com.project.popupmarket.dto.admin.AdminMonthlyCountTO;
-import com.project.popupmarket.dto.admin.AdminReceiptsDTO;
+import com.project.popupmarket.dto.admin.*;
 import com.project.popupmarket.dto.land.RentalLandTO;
 import com.project.popupmarket.dto.payment.ReceiptsManageTO;
 import com.project.popupmarket.dto.user.UserDto;
@@ -21,8 +18,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -65,7 +67,7 @@ public class AdminService {
 
     public AdminDashboardSummaryTO getWeeklyDashboard(){
 
-        List<Object[]> dashboardData = receiptsRepository.findDashboardsBetween(LocalDateTime.now().minusDays(30), LocalDateTime.now());
+        List<Object[]> dashboardData = receiptsRepository.findDashboardsBetween(LocalDateTime.now().minusDays(6), LocalDateTime.now());
         List<AdminDashboardTO> dashboardList = dashboardData.stream()
                 .map(obj -> {
                     Receipts receipts = (Receipts) obj[0];  // Receipts 엔티티
@@ -101,16 +103,18 @@ public class AdminService {
                 ));
 
         // 모든 날짜를 포함하여 데이터 생성 (없는 날짜는 0)
-        List<Object[]> dailyCounts = lastWeekDates.stream()
-                .map(date -> new Object[]{date.toString(), transactionMap.getOrDefault(date, 0L)})
+        List<Map<String, Object>> dailyCounts = lastWeekDates.stream()
+                .map(date -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("date", date);
+                    map.put("count", transactionMap.getOrDefault(date, 0L));
+                    return map;
+                })
                 .toList();
-
-
-//        List<Object[]> weeklyRegistered = userRepository.findUsersByRegisteredAtBetween(LocalDateTime.now().minusDays(7),LocalDateTime.now());
 
         // DB에서 가져온 회원 등록 데이터
         List<Object[]> weeklyRegistered = userRepository.findUsersByRegisteredAtBetween(
-                LocalDateTime.now().minusDays(7), LocalDateTime.now()
+                LocalDateTime.now().minusDays(6), LocalDateTime.now()
         );
 
         // 데이터를 Map<LocalDate, Long> 형태로 변환
@@ -121,10 +125,14 @@ public class AdminService {
                 ));
 
         // 모든 날짜를 포함하여 결과 생성 (없는 날짜는 0)
-        List<Object[]> formattedWeeklyRegistered = lastWeekDates.stream()
-                .map(date -> new Object[]{date.toString(), registeredMap.getOrDefault(date, 0L)})
+        List<Map<String, Object>> formattedWeeklyRegistered = lastWeekDates.stream()
+                .map(date -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("date", date);
+                    map.put("count", registeredMap.getOrDefault(date, 0L));
+                    return map;
+                })
                 .toList();
-
 
         Map<Role, Long> countUsersByRoleMap = userRepository.countUsersByRole().stream()
                 .collect(Collectors.toMap(
@@ -151,18 +159,127 @@ public class AdminService {
                 .daily(receiptsRepository.findTotalAmountByBetween(LocalDateTime.now().minusDays(1),LocalDateTime.now()))
                 .build();
 
-        AdminDashboardSummaryTO dashboardSummaryTO = AdminDashboardSummaryTO.builder()
+        return AdminDashboardSummaryTO.builder()
                 .dashboardList(dashboardList)
                 .dailyCounts(dailyCounts)
                 .weeklyRegistered(formattedWeeklyRegistered)
-                .countUsersByRole(countUsersByRoleMap)
-                .totalRentalLands(totalRentalLandsMap)
+                .countUsers(countUsersByRoleMap)
+                .totalLands(totalRentalLandsMap)
                 .totalPopups(totalPopupsMap)
                 .monthlyCount(adminMonthlyCountTO)
                 .build();
-
-        return dashboardSummaryTO;
     }
 
+    public AdminPeriodAnalyticsTO getDailyAnalytics(int days){
+        // 현재 주간 데이터 날짜 범위 설정
+        LocalDateTime endDate = LocalDateTime.now();
+        LocalDateTime startDate = endDate.minusDays(days);
+        List<Object[]> currentSales = receiptsRepository.findDailySalesBetween(startDate, endDate);
 
+        // 이전 주간 데이터 날짜 범위 설정
+        LocalDateTime previousEndDate = startDate.minusDays(1);
+        LocalDateTime previousStartDate = previousEndDate.minusDays(days);
+        List<Object[]> previousSales = receiptsRepository.findDailySalesBetween(previousStartDate, previousEndDate);
+
+        // 날짜 범위 생성 (MM-dd 형식)
+        List<String> currentdateRange = IntStream.rangeClosed(0, (int) (endDate.toLocalDate().toEpochDay() - startDate.toLocalDate().toEpochDay()))
+                .mapToObj(i -> startDate.plusDays(i).format(DateTimeFormatter.ofPattern("MM-dd")))
+                .toList();
+
+        List<String> previousdateRange = IntStream.rangeClosed(0, (int) (previousEndDate.toLocalDate().toEpochDay() - previousStartDate.toLocalDate().toEpochDay()))
+                .mapToObj(i -> previousStartDate.plusDays(i).format(DateTimeFormatter.ofPattern("MM-dd")))
+                .toList();
+
+        // 현재 주간 데이터 맵으로 변환
+        Map<String, BigDecimal> currentSalesMap = currentSales.stream()
+                .collect(Collectors.toMap(
+                        obj -> obj[0].toString(), // 날짜 ("MM-dd")
+                        obj -> (BigDecimal) obj[1]
+                ));
+
+        // 이전 주간 데이터 맵으로 변환
+        Map<String, BigDecimal> previousSalesMap = previousSales.stream()
+                .collect(Collectors.toMap(
+                        obj -> obj[0].toString(), // 날짜 ("MM-dd")
+                        obj -> (BigDecimal) obj[1]
+                ));
+
+        // 현재 주간 데이터 리스트 변환
+        List<Map<String, Object>> formattedCurrentSales = currentdateRange.stream()
+                .map(month -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("date", month);
+                    map.put("revenue", currentSalesMap.getOrDefault(month, BigDecimal.ZERO));
+                    return map;
+                })
+                .toList();
+
+        // 이전 주간 데이터 리스트 변환
+        List<Map<String, Object>> formattedPreviousSales = previousdateRange.stream()
+                .map(month -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("date", month);
+                    map.put("revenue", previousSalesMap.getOrDefault(month, BigDecimal.ZERO));
+                    return map;
+                })
+                .toList();
+
+        return AdminPeriodAnalyticsTO.builder()
+                .current(formattedCurrentSales)
+                .prev(formattedPreviousSales)
+                .build();
+    }
+
+    public AdminPeriodAnalyticsTO getMonthlyAnalytics(int months){
+        LocalDateTime endMonth = LocalDateTime.now();
+        LocalDateTime startMonth = endMonth.minusMonths(months);
+        List<Object[]> currentSales = receiptsRepository.findMonthlySalesBetween(startMonth, endMonth);
+
+        LocalDateTime previousEndMonth = startMonth.minusMonths(1);
+        LocalDateTime previousStartMonth = previousEndMonth.minusMonths(months);
+        List<Object[]> previousSales = receiptsRepository.findMonthlySalesBetween(previousStartMonth, previousEndMonth);
+
+        List<String> currentMonthsRange = IntStream.rangeClosed(0, (int) ChronoUnit.MONTHS.between(startMonth, endMonth))
+                .mapToObj(i -> String.format("%02d월", startMonth.plusMonths(i).getMonthValue()))
+                .toList();
+
+        List<String> previousMonthsRange = IntStream.rangeClosed(0, (int) ChronoUnit.MONTHS.between(previousStartMonth, previousEndMonth))
+                .mapToObj(i -> String.format("%02d월", previousStartMonth.plusMonths(i).getMonthValue()))
+                .toList();
+
+        Map<String, BigDecimal> currentSalesMap = currentSales.stream()
+                .collect(Collectors.toMap(
+                        obj -> String.format("%02d월", Integer.parseInt(obj[0].toString())),
+                        obj -> (BigDecimal) obj[1]
+                ));
+
+        Map<String, BigDecimal> previousSalesMap = previousSales.stream()
+                .collect(Collectors.toMap(
+                        obj -> String.format("%02d월", Integer.parseInt(obj[0].toString())),
+                        obj -> (BigDecimal) obj[1]
+                ));
+
+        List<Map<String, Object>> formattedCurrentSales = currentMonthsRange.stream()
+                .map(month -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("date", month);
+                    map.put("revenue", currentSalesMap.getOrDefault(month, BigDecimal.ZERO));
+                    return map;
+                })
+                .toList();
+
+        List<Map<String, Object>> formattedPreviousSales = previousMonthsRange.stream()
+                .map(month -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("date", month);
+                    map.put("revenue", previousSalesMap.getOrDefault(month, BigDecimal.ZERO));
+                    return map;
+                })
+                .toList();
+
+        return AdminPeriodAnalyticsTO.builder()
+                .current(formattedCurrentSales)
+                .prev(formattedPreviousSales)
+                .build();
+    }
 }
