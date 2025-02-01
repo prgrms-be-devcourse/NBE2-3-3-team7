@@ -15,10 +15,10 @@ import java.util.Map;
 @AllArgsConstructor
 public class AdminDashboardSummaryTO {
     private List<AdminDashboardTO> dashboardList;  // 개별 거래 내역 리스트
-    private List<Object[]>  dailyCounts;  // 일일 거래량 요약 데이터
-    private List<Object[]> weeklyRegistered;
-    private Map<Role, Long> countUsersByRole;
-    private Map<ActivateStatus, Long> totalRentalLands;
+    private List<Map<String, Object>>  dailyCounts;  // 일일 거래량 요약 데이터
+    private List<Map<String, Object>> weeklyRegistered;
+    private Map<Role, Long> countUsers;
+    private Map<ActivateStatus, Long> totalLands;
     private Map<ActivateStatus, Long> totalPopups;
     private AdminMonthlyCountTO monthlyCount;
 }
