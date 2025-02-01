@@ -65,98 +65,46 @@ public class AdminService {
                 });
     }
 
-    public AdminDashboardSummaryTO getWeeklyDashboard(){
+    public AdminDashboardSummaryTO getWeeklyDashboard() {
+        LocalDateTime startDate = LocalDateTime.now().minusDays(6);
+        LocalDateTime endDate = LocalDateTime.now();
 
-        List<Object[]> dashboardData = receiptsRepository.findDashboardsBetween(LocalDateTime.now().minusDays(6), LocalDateTime.now());
+        // 거래 내역 데이터 조회 및 변환
+        List<Object[]> dashboardData = receiptsRepository.findDashboardsBetween(startDate, endDate);
         List<AdminDashboardTO> dashboardList = dashboardData.stream()
-                .map(obj -> {
-                    Receipts receipts = (Receipts) obj[0];  // Receipts 엔티티
-                    String customerName = (String) obj[1];  // Popup에서 가져온 customerName
-                    String landlordName = (String) obj[2];  // RentalLand에서 가져온 landlordName
-
-                    ReceiptsManageTO receiptsManageTO = ReceiptsManageTO.builder()
-                            .paymentKey(receipts.getPaymentKey())
-                            .amount(receipts.getAmount())
-                            .start(receipts.getStartDate())
-                            .end(receipts.getEndDate())
-                            .status(receipts.getReservationStatus())
-                            .reservedAt(receipts.getReservedAt())
-                            .build();
-
-                    return new AdminDashboardTO(receiptsManageTO, customerName, landlordName);
-                })
-                .collect(Collectors.toList());
-
-        // 오늘 날짜 가져오기
-        LocalDate today = LocalDate.now();
-
-        // 지난 6일 전 날짜부터 오늘까지의 범위 생성
-        List<LocalDate> lastWeekDates = IntStream.rangeClosed(0, 6)
-                .mapToObj(i -> today.minusDays(6 - i))
+                .map(obj -> new AdminDashboardTO(
+                        ReceiptsManageTO.builder()
+                                .paymentKey(((Receipts) obj[0]).getPaymentKey())
+                                .amount(((Receipts) obj[0]).getAmount())
+                                .start(((Receipts) obj[0]).getStartDate())
+                                .end(((Receipts) obj[0]).getEndDate())
+                                .status(((Receipts) obj[0]).getReservationStatus())
+                                .reservedAt(((Receipts) obj[0]).getReservedAt())
+                                .build(),
+                        (String) obj[1],  // Popup 이름
+                        (String) obj[2]   // RentalLand 이름
+                ))
                 .toList();
 
-        // 기존 데이터 그룹화
-        Map<LocalDate, Long> transactionMap = dashboardList.stream()
-                .collect(Collectors.groupingBy(
-                        item -> item.getReceipts().getReservedAt().toLocalDate(),
-                        Collectors.counting()
-                ));
+        // 일일 거래량 데이터
+        List<String> lastWeekDates = generateDateRange(startDate.toLocalDate(), endDate.toLocalDate(), "yyyy-MM-dd", ChronoUnit.DAYS);
+        List<Map<String, Object>> dailyCounts = formatTransactionCounts(dashboardList, lastWeekDates);
 
-        // 모든 날짜를 포함하여 데이터 생성 (없는 날짜는 0)
-        List<Map<String, Object>> dailyCounts = lastWeekDates.stream()
-                .map(date -> {
-                    Map<String, Object> map = new HashMap<>();
-                    map.put("date", date);
-                    map.put("count", transactionMap.getOrDefault(date, 0L));
-                    return map;
-                })
-                .toList();
+        // 일일 가입자 수
+        List<Object[]> weeklyRegistered = userRepository.findUsersByRegisteredAtBetween(startDate, endDate);
+        List<Map<String, Object>> formattedWeeklyRegistered = formatUserRegistrationCounts(weeklyRegistered, lastWeekDates);
 
-        // DB에서 가져온 회원 등록 데이터
-        List<Object[]> weeklyRegistered = userRepository.findUsersByRegisteredAtBetween(
-                LocalDateTime.now().minusDays(6), LocalDateTime.now()
-        );
+        // 통계 데이터
+        Map<Role, Long> countUsersByRoleMap = convertToMap(userRepository.countUsersByRole());
+        Map<ActivateStatus, Long> totalRentalLandsMap = convertToMap(rentalLandJpaRepository.countRentalLandsByStatus());
+        Map<ActivateStatus, Long> totalPopupsMap = convertToMap(popupJpaRepository.countPopupsByStatus());
 
-        // 데이터를 Map<LocalDate, Long> 형태로 변환
-        Map<LocalDate, Long> registeredMap = weeklyRegistered.stream()
-                .collect(Collectors.toMap(
-                        obj -> LocalDate.parse(obj[0].toString()), // 날짜 (String -> LocalDate 변환)
-                        obj -> (Long) obj[1] // 등록된 사용자 수
-                ));
-
-        // 모든 날짜를 포함하여 결과 생성 (없는 날짜는 0)
-        List<Map<String, Object>> formattedWeeklyRegistered = lastWeekDates.stream()
-                .map(date -> {
-                    Map<String, Object> map = new HashMap<>();
-                    map.put("date", date);
-                    map.put("count", registeredMap.getOrDefault(date, 0L));
-                    return map;
-                })
-                .toList();
-
-        Map<Role, Long> countUsersByRoleMap = userRepository.countUsersByRole().stream()
-                .collect(Collectors.toMap(
-                        obj -> (Role) obj[0],
-                        obj -> ((Number) obj[1]).longValue()
-                ));
-
-        Map<ActivateStatus, Long> totalRentalLandsMap = rentalLandJpaRepository.countRentalLandsByStatus().stream()
-                .collect(Collectors.toMap(
-                        obj -> (ActivateStatus) obj[0],
-                        obj -> ((Number) obj[1]).longValue()
-                ));
-
-        Map<ActivateStatus, Long> totalPopupsMap = popupJpaRepository.countPopupsByStatus().stream()
-                .collect(Collectors.toMap(
-                        obj -> (ActivateStatus) obj[0],
-                        obj -> ((Number) obj[1]).longValue()
-                ));
-
+        // 월/주/일 매출 통계
         AdminMonthlyCountTO adminMonthlyCountTO = AdminMonthlyCountTO.builder()
-                .monthlyCount(receiptsRepository.findTotalCountByBetween(LocalDateTime.now().minusMonths(1),LocalDateTime.now()))
-                .monthly(receiptsRepository.findTotalAmountByBetween(LocalDateTime.now().minusMonths(1),LocalDateTime.now()))
-                .weekly(receiptsRepository.findTotalAmountByBetween(LocalDateTime.now().minusWeeks(1),LocalDateTime.now()))
-                .daily(receiptsRepository.findTotalAmountByBetween(LocalDateTime.now().minusDays(1),LocalDateTime.now()))
+                .monthlyCount(receiptsRepository.findTotalCountByBetween(startDate.minusMonths(1), endDate))
+                .monthly(receiptsRepository.findTotalAmountByBetween(startDate.minusMonths(1), endDate))
+                .weekly(receiptsRepository.findTotalAmountByBetween(startDate.minusWeeks(1), endDate))
+                .daily(receiptsRepository.findTotalAmountByBetween(startDate.minusDays(1), endDate))
                 .build();
 
         return AdminDashboardSummaryTO.builder()
@@ -174,55 +122,21 @@ public class AdminService {
         // 현재 주간 데이터 날짜 범위 설정
         LocalDateTime endDate = LocalDateTime.now();
         LocalDateTime startDate = endDate.minusDays(days);
-        List<Object[]> currentSales = receiptsRepository.findDailySalesBetween(startDate, endDate);
 
         // 이전 주간 데이터 날짜 범위 설정
         LocalDateTime previousEndDate = startDate.minusDays(1);
         LocalDateTime previousStartDate = previousEndDate.minusDays(days);
-        List<Object[]> previousSales = receiptsRepository.findDailySalesBetween(previousStartDate, previousEndDate);
 
         // 날짜 범위 생성 (MM-dd 형식)
-        List<String> currentdateRange = IntStream.rangeClosed(0, (int) (endDate.toLocalDate().toEpochDay() - startDate.toLocalDate().toEpochDay()))
-                .mapToObj(i -> startDate.plusDays(i).format(DateTimeFormatter.ofPattern("MM-dd")))
-                .toList();
+        List<String> dateRange = generateDateRange(startDate.toLocalDate(), endDate.toLocalDate(), "MM-dd", ChronoUnit.DAYS);
 
-        List<String> previousdateRange = IntStream.rangeClosed(0, (int) (previousEndDate.toLocalDate().toEpochDay() - previousStartDate.toLocalDate().toEpochDay()))
-                .mapToObj(i -> previousStartDate.plusDays(i).format(DateTimeFormatter.ofPattern("MM-dd")))
-                .toList();
+        // 데이터 맵으로 변환
+        Map<String, BigDecimal> currentSalesMap = convertToMap(receiptsRepository.findDailySalesBetween(startDate, endDate));
+        Map<String, BigDecimal> previousSalesMap = convertToMap(receiptsRepository.findDailySalesBetween(previousStartDate, previousEndDate));
 
-        // 현재 주간 데이터 맵으로 변환
-        Map<String, BigDecimal> currentSalesMap = currentSales.stream()
-                .collect(Collectors.toMap(
-                        obj -> obj[0].toString(), // 날짜 ("MM-dd")
-                        obj -> (BigDecimal) obj[1]
-                ));
-
-        // 이전 주간 데이터 맵으로 변환
-        Map<String, BigDecimal> previousSalesMap = previousSales.stream()
-                .collect(Collectors.toMap(
-                        obj -> obj[0].toString(), // 날짜 ("MM-dd")
-                        obj -> (BigDecimal) obj[1]
-                ));
-
-        // 현재 주간 데이터 리스트 변환
-        List<Map<String, Object>> formattedCurrentSales = currentdateRange.stream()
-                .map(month -> {
-                    Map<String, Object> map = new HashMap<>();
-                    map.put("date", month);
-                    map.put("revenue", currentSalesMap.getOrDefault(month, BigDecimal.ZERO));
-                    return map;
-                })
-                .toList();
-
-        // 이전 주간 데이터 리스트 변환
-        List<Map<String, Object>> formattedPreviousSales = previousdateRange.stream()
-                .map(month -> {
-                    Map<String, Object> map = new HashMap<>();
-                    map.put("date", month);
-                    map.put("revenue", previousSalesMap.getOrDefault(month, BigDecimal.ZERO));
-                    return map;
-                })
-                .toList();
+        // 데이터 리스트 변환
+        List<Map<String, Object>> formattedCurrentSales = formatSalesData(currentSalesMap, dateRange);
+        List<Map<String, Object>> formattedPreviousSales = formatSalesData(previousSalesMap, dateRange);
 
         return AdminPeriodAnalyticsTO.builder()
                 .current(formattedCurrentSales)
@@ -233,53 +147,85 @@ public class AdminService {
     public AdminPeriodAnalyticsTO getMonthlyAnalytics(int months){
         LocalDateTime endMonth = LocalDateTime.now();
         LocalDateTime startMonth = endMonth.minusMonths(months);
-        List<Object[]> currentSales = receiptsRepository.findMonthlySalesBetween(startMonth, endMonth);
 
         LocalDateTime previousEndMonth = startMonth.minusMonths(1);
         LocalDateTime previousStartMonth = previousEndMonth.minusMonths(months);
-        List<Object[]> previousSales = receiptsRepository.findMonthlySalesBetween(previousStartMonth, previousEndMonth);
 
-        List<String> currentMonthsRange = IntStream.rangeClosed(0, (int) ChronoUnit.MONTHS.between(startMonth, endMonth))
-                .mapToObj(i -> String.format("%02d월", startMonth.plusMonths(i).getMonthValue()))
-                .toList();
+        // 날짜 범위 생성 (MM-dd 형식)
+        List<String> monthsRange = generateDateRange(startMonth.toLocalDate(), endMonth.toLocalDate(), "MM", ChronoUnit.MONTHS);
 
-        List<String> previousMonthsRange = IntStream.rangeClosed(0, (int) ChronoUnit.MONTHS.between(previousStartMonth, previousEndMonth))
-                .mapToObj(i -> String.format("%02d월", previousStartMonth.plusMonths(i).getMonthValue()))
-                .toList();
+        // 데이터 맵으로 변환
+        Map<String, BigDecimal> currentSalesMap = convertToMap(receiptsRepository.findMonthlySalesBetween(startMonth, endMonth));
+        Map<String, BigDecimal> previousSalesMap = convertToMap(receiptsRepository.findMonthlySalesBetween(previousStartMonth, previousEndMonth));
 
-        Map<String, BigDecimal> currentSalesMap = currentSales.stream()
-                .collect(Collectors.toMap(
-                        obj -> String.format("%02d월", Integer.parseInt(obj[0].toString())),
-                        obj -> (BigDecimal) obj[1]
-                ));
-
-        Map<String, BigDecimal> previousSalesMap = previousSales.stream()
-                .collect(Collectors.toMap(
-                        obj -> String.format("%02d월", Integer.parseInt(obj[0].toString())),
-                        obj -> (BigDecimal) obj[1]
-                ));
-
-        List<Map<String, Object>> formattedCurrentSales = currentMonthsRange.stream()
-                .map(month -> {
-                    Map<String, Object> map = new HashMap<>();
-                    map.put("date", month);
-                    map.put("revenue", currentSalesMap.getOrDefault(month, BigDecimal.ZERO));
-                    return map;
-                })
-                .toList();
-
-        List<Map<String, Object>> formattedPreviousSales = previousMonthsRange.stream()
-                .map(month -> {
-                    Map<String, Object> map = new HashMap<>();
-                    map.put("date", month);
-                    map.put("revenue", previousSalesMap.getOrDefault(month, BigDecimal.ZERO));
-                    return map;
-                })
-                .toList();
+        // 데이터 리스트 변환
+        List<Map<String, Object>> formattedCurrentSales = formatSalesData(currentSalesMap, monthsRange);
+        List<Map<String, Object>> formattedPreviousSales = formatSalesData(previousSalesMap, monthsRange);
 
         return AdminPeriodAnalyticsTO.builder()
                 .current(formattedCurrentSales)
                 .prev(formattedPreviousSales)
                 .build();
+    }
+
+    /** 날짜 범위 리스트 생성 */
+    private List<String> generateDateRange(LocalDate start, LocalDate end, String pattern, ChronoUnit unit) {
+        return IntStream.rangeClosed(0, (int) unit.between(start, end))
+                .mapToObj(i -> start.plus(i, unit).format(DateTimeFormatter.ofPattern(pattern)))
+                .toList();
+    }
+
+    /** 매출 데이터 변환 */
+    private List<Map<String, Object>> formatSalesData(Map<String, BigDecimal> salesMap, List<String> dateRange) {
+        return dateRange.stream()
+                .map(date -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("date", date);
+                    map.put("revenue", salesMap.getOrDefault(date, BigDecimal.ZERO));
+                    return map;
+                })
+//                .map(date -> Map.of("date", date, "revenue", salesMap.getOrDefault(date, BigDecimal.ZERO)))
+                .toList();
+    }
+
+    /** 거래량 데이터 변환 */
+    private List<Map<String, Object>> formatTransactionCounts(List<AdminDashboardTO> transactions, List<String> dateRange) {
+        Map<String, Long> transactionMap = transactions.stream()
+                .collect(Collectors.groupingBy(item -> item.getReceipts().getReservedAt().toLocalDate().toString(), Collectors.counting()));
+
+        return dateRange.stream()
+                .map(date -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("date", date);
+                    map.put("count", transactionMap.getOrDefault(date, 0L));
+                    return map;
+                })
+//                .map(date -> Map.of("date", date, "count", transactionMap.getOrDefault(date, 0L)))
+                .toList();
+    }
+
+    /** 사용자 가입 데이터 변환 */
+    private List<Map<String, Object>> formatUserRegistrationCounts(List<Object[]> rawData, List<String> dateRange) {
+        Map<String, Long> registrationMap = rawData.stream()
+                .collect(Collectors.toMap(obj -> obj[0].toString(), obj -> (Long) obj[1]));
+
+        return dateRange.stream()
+                .map(date -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("date", date);
+                    map.put("count", registrationMap.getOrDefault(date, 0L));
+                    return map;
+                })
+//                .map(date -> Map.of("date", date, "count", registrationMap.getOrDefault(date, 0L)))
+                .toList();
+    }
+
+    /** 데이터 변환 (Role & ActivateStatus) */
+    private <K, V> Map<K, V> convertToMap(List<Object[]> rawData) {
+        return rawData.stream().collect(
+                Collectors.toMap(
+                        obj -> (K) obj[0],
+                        obj -> (V) obj[1]
+                ));
     }
 }
