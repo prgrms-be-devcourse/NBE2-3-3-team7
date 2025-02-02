@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 
 const routes = [
 	{ path: '/test', component: () => import('../views/HelloWorld.vue') },
+	{ path: '/auth/callback', component: () => import('../views/sign/AuthCallback.vue') },
 	{
 		path: '/admin', component: () => import('../layout/AdminLayout.vue'),
 		children: [

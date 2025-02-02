@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import TermsForm from '@/components/policy/TermsForm.vue';
 import PrivacyForm from '@/components/policy/PrivacyForm.vue';
@@ -8,11 +8,6 @@ import { useSignupStore } from '@/store/signup';
 const router = useRouter();
 
 const signupStore = useSignupStore();
-
-onMounted(() => {
-	signupStore.useSocial();
-	// signupStore.useEmail();
-});
 
 const isTermsAccepted = ref(false);
 const isPrivacyAccepted = ref(false);
@@ -34,8 +29,7 @@ const closeModal = () => {
 };
 
 const proceedToNextPage = () => {
-	if (signupStore.role === 'customer' && signupStore.social) {
-		// 소셜 로그인을 시도해서 새롭게 가입하는는 일반 사용자일 경우
+	if (signupStore.isCustomer && signupStore.social) {
 		router.push('/signup/info');
 	} else {
 		// 그 이외의 경우

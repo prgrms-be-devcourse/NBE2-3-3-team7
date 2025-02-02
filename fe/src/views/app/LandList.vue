@@ -62,7 +62,6 @@ const fetchLandList = async () => {
 	try {
 		const result = await landList(route.query);
 		land.value = result;
-		console.log(result);
 	} catch (err) {
 		console.error(err);
 	}
@@ -81,6 +80,13 @@ const fetchLandList = async () => {
 				class="flex w-full max-w-7xl space-x-0 md:space-x-2 border-t-2 border-b-2 border-[#3FB8AF] mx-auto py-2 justify-between items-center">
 				<div class="flex flex-col md:flex-row space-y-2 space-x-0 md:space-y-0 md:space-x-2">
 					<div class="flex space-y-2 space-x-0 xl:space-y-0 xl:space-x-2 flex-col xl:flex-row">
+						<div class="bg-white px-4 py-2 min-w-60 flex-shrink-0 rounded-md border border-gray-300">
+							<div class="mb-2 flex justify-between space-x-2">
+								<h3 class="font-bold">면적</h3>
+								<label id="area-range" class="text-center"></label>
+							</div>
+							<div id="area-slider" class="w-full"></div>
+						</div>
 						<div
 							class="bg-white px-4 py-2 flex-col flex-shrink-0 border flex space-x-2 border-gray-300 rounded-md">
 							<label class="font-bold">지역</label>
@@ -105,27 +111,20 @@ const fetchLandList = async () => {
 								<option value="제주">제주</option>
 							</select>
 						</div>
-						<div class="bg-white px-4 py-2 min-w-60 flex-shrink-0 rounded-md border border-gray-300">
-							<div class="mb-2 flex justify-between space-x-2">
-								<h3 class="font-bold">면적</h3>
-								<label id="area-range" class="text-center"></label>
-							</div>
-							<div id="area-slider" class="w-full"></div>
-						</div>
 					</div>
 
 					<div class="flex space-y-2 space-x-0 xl:space-y-0 xl:space-x-2 flex-col xl:flex-row">
-						<div class="bg-white min-w-60 border px-4 border-gray-300 rounded-md p-2">
-							<label for="date-range" class="font-bold">임대 기간</label>
-							<input type="text" id="date-range" v-model="filterStore.period" placeholder="기간을 선택하세요."
-								class="w-full">
-						</div>
 						<div class="bg-white px-4 py-2 rounded-md border border-gray-300 min-w-60">
 							<div class="mb-2 flex justify-between">
 								<h3 class="font-bold">금액</h3>
 								<label id="price-range" class="text-center"></label>
 							</div>
 							<div id="price-slider" class="w-full"></div>
+						</div>
+						<div class="bg-white min-w-60 border px-4 border-gray-300 rounded-md p-2">
+							<label for="date-range" class="font-bold">임대 기간</label>
+							<input type="text" id="date-range" v-model="filterStore.period" placeholder="기간을 선택하세요."
+								class="w-full">
 						</div>
 					</div>
 				</div>

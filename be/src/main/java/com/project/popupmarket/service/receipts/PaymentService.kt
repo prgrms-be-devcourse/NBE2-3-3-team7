@@ -6,11 +6,11 @@ import com.project.popupmarket.entity.StagingPayment
 import com.project.popupmarket.enums.ReservationStatus
 import com.project.popupmarket.exception.custom.PaymentException
 import com.project.popupmarket.repository.ReceiptsRepository
-import com.project.popupmarket.util.UserContextUtil
+import com.project.popupmarket.repository.RentalLandJpaRepository
+import com.project.popupmarket.repository.UserRepository
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import java.math.BigDecimal
 import java.util.*
 
 @Service
@@ -18,17 +18,17 @@ class PaymentService(
     private val stagingPaymentRedisService: StagingPaymentRedisService,
     private val receiptsRepository: ReceiptsRepository,
     private val tossRequestService: TossRequestService,
-    private val userContextUtil: UserContextUtil,
+    private val userRepository: UserRepository,
+    private val rentalLandJpaRepository: RentalLandJpaRepository,
 ) {
     private val log = LoggerFactory.getLogger(PaymentService::class.java)
 
     @Transactional
     fun paymentProcess(payment: TossPaymentTO) {
-        val receipt = tossRequestService.requestPayment(payment)
-        receipt.customerId = userContextUtil.userId ?: throw IllegalStateException("사용자 ID가 필요합니다")
+        val response = tossRequestService.requestPayment(payment)
 
         try {
-            insertReceipt(receipt)
+            insertReceipt(response)
         } catch (e: Exception) {
             tossRequestService.cancelPayment(payment.paymentKey, "시스템 에러로 인한 결제 취소")
             log.error("영수증 저장 실패로 결제 취소 처리: {}", e.message)
@@ -37,87 +37,79 @@ class PaymentService(
     }
 
     fun getPaymentInfo(reservation: ReservationTO): ReservationInfoResponse {
-        val isReservationValid = receiptsRepository.reservationDateCheck(reservation)
-        if (!isReservationValid) {
+        if (!receiptsRepository.reservationDateCheck(reservation)) {
             throw IllegalArgumentException("이미 예약된 날짜입니다.")
         }
 
-        val user = receiptsRepository.getCustomerName(reservation.customerId)
+        val user = userRepository.findById(reservation.customerId).orElseThrow {
+            throw IllegalArgumentException("사용자를 찾을 수 없습니다.")
+        }
 
-        val land = receiptsRepository.getLandTitle(reservation.landId)
-
-        if (user == null || land == null) {
-            throw IllegalArgumentException("사용자 또는 임대지를 찾을 수 없습니다.")
+        val land = rentalLandJpaRepository.findById(reservation.landId).orElseThrow {
+            throw IllegalArgumentException("임대지를 찾을 수 없습니다.")
         }
 
         return ReservationInfoResponse(
+            customerId = user.id!!,
             customerKey = UUID.randomUUID().toString(),
-//            landTitle = rentalLand.title,
-//            price = rentalLand.price,
-//            customerEmail = user.email,
-//            customerName = user.name,
-//            customerTel = user.tel,
-//            zipcode = rentalLand.zipcode,
-//            address = rentalLand.address,
-//            addrDetail = rentalLand.addrDetail 3
-            landTitle = "임대지1",
-            price = BigDecimal.valueOf(10000),
-            customerEmail = "tto0113@gmail.com",
-            customerName = "홍길동",
-            customerTel = "010-5672-3635",
-            zipcode = "12345",
-            address = "충북 청주시 청원구",
-            addrDetail = "상세주소"
+            landTitle = land.title!!,
+            price = land.price!!,
+            customerEmail = user.email,
+            customerName = user.name,
+            customerTel = user.tel,
+            zipcode = land.zipcode!!,
+            address = land.address!!,
+            addrDetail = land.addrDetail!!,
         )
     }
 
     @Transactional
-    fun insertStagingPayment(receipt: ReceiptsTO) {
-        val stagingPayment = StagingPayment(
-            orderId = receipt.orderId,
-            customerId = receipt.customerId,
-            rentalLandId = receipt.landId,
-            startDate = receipt.start,
-            endDate = receipt.end,
-            totalAmount = receipt.amount
+    fun insertStagingPayment(request: StagingRequest) {
+        val payment = StagingPayment(
+            orderId = request.orderId,
+            customerId = request.customerId,
+            landId = request.landId,
+            startDate = request.start,
+            endDate = request.end,
+            totalAmount = request.amount
         )
 
-        stagingPaymentRedisService.save(stagingPayment.orderId, stagingPayment)
+        stagingPaymentRedisService.save(payment.orderId, payment)
 
-        val saved = stagingPaymentRedisService.find(stagingPayment.orderId)
-        if (saved == null || saved.orderId != stagingPayment.orderId) {
-            log.error("Redis 저장 실패: Order ID = {}", stagingPayment.orderId)
+        val saved = stagingPaymentRedisService.find(payment.orderId)
+        if (saved == null || saved.orderId != payment.orderId) {
+            log.error("Redis 저장 실패: Order ID = {}", payment.orderId)
             throw PaymentException("Redis에 결제 데이터를 저장하는 데 실패하였습니다.")
         }
     }
 
     @Transactional
-    fun insertReceipt(receipt: ReceiptsTO) {
-        stagingPaymentRedisService.find(receipt.orderId)
+    fun insertReceipt(payment: TossPaymentTO) {
+        val redis = stagingPaymentRedisService.find(payment.orderId)
             ?: throw IllegalArgumentException("해당 Order ID에 대한 StagingPayment를 찾을 수 없습니다.")
 
         val receipts = Receipts(
-            paymentKey = receipt.paymentKey.toString(),
-            orderId = receipt.orderId,
-            customerId = receipt.customerId,
-            rentalLandId = receipt.landId,
-            startDate = receipt.start,
-            endDate = receipt.end,
-            amount = receipt.amount,
+            paymentKey = payment.paymentKey,
+            orderId = redis.orderId,
+            customerId = redis.customerId,
+            rentalLandId = redis.landId,
+            startDate = redis.startDate,
+            endDate = redis.endDate,
+            amount = redis.totalAmount,
             reservationStatus = ReservationStatus.COMPLETED
         )
 
         receiptsRepository.save(receipts)
-        stagingPaymentRedisService.delete(receipt.orderId)
+        stagingPaymentRedisService.delete(redis.orderId)
     }
 
     @Transactional
-    fun deleteStagingPayment(receipt: ReceiptsTO) {
+    fun deleteStagingPayment(orderId: String) {
         try {
-            val stagingPayment = stagingPaymentRedisService.find(receipt.orderId)
-                ?: throw IllegalArgumentException("주문 번호를 찾을 수 없습니다. ${receipt.orderId}")
+            val staging = stagingPaymentRedisService.find(orderId)
+                ?: throw IllegalArgumentException("주문 번호를 찾을 수 없습니다. $orderId")
 
-            stagingPaymentRedisService.delete(receipt.orderId)
+            stagingPaymentRedisService.delete(staging.orderId)
         } catch (e: IllegalArgumentException) {
             log.warn("해당 임시 결제 내역을 삭제할 수 없습니다. : {}", e.message)
             throw e
@@ -148,7 +140,7 @@ class PaymentService(
         val payment = TossPaymentTO(
             paymentKey = receipts.paymentKey,
             orderId = receipts.orderId,
-            amount = receipts.amount
+            totalAmount = receipts.amount
         )
 
         tossRequestService.cancelPayment(payment.paymentKey, "시스템 에러로 인한 결제 취소")

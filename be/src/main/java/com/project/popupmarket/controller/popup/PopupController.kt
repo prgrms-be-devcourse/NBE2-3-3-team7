@@ -38,8 +38,6 @@ class PopupController (
     ): ResponseEntity<Page<PopupRespTO>> {
         val pageable: Pageable = PageRequest.of(page, 9)
 
-        println("$location, $type, $ageGroup, $startDate, $endDate, $sorting")
-
         return ResponseEntity.ok(popupService.findFilterWithPagination(location, type, ageGroup, startDate, endDate, sorting, pageable))
     }
 

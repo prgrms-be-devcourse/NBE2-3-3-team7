@@ -5,5 +5,5 @@ import java.math.BigDecimal
 data class TossPaymentTO(
     val paymentKey: String,
     val orderId: String,
-    val amount: BigDecimal
+    val totalAmount: BigDecimal
 )

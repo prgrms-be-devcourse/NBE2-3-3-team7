@@ -7,7 +7,7 @@ import java.time.LocalDate
 data class StagingPayment(
     val orderId: String,
     val customerId: Long,
-    val rentalLandId: Long,
+    val landId: Long,
     val startDate: LocalDate,
     val endDate: LocalDate,
     val totalAmount: BigDecimal,

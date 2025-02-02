@@ -6,11 +6,11 @@ const { VITE_KAKAO_MAP_KEY } = import.meta.env;
 const mapContainer = ref(null);
 
 const props = defineProps({
-	addr: String,
+	data: String,
 });
 
 onMounted(() => {
-	loadKakaoMap(mapContainer.value, props.addr);
+	loadKakaoMap(mapContainer.value, props.data);
 });
 
 const loadKakaoMap = (container, addr) => {

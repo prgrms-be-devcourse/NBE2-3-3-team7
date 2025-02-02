@@ -42,7 +42,6 @@ server:
 # 임시 경로 AWS S3로 변경 예정
 app:
   upload-path: C:/popupmarket/user_brand/
-  resource-path: file:C:/popupmarket/
   default-profile-image: brand_default.png
 jwt:
   issuer: ${JWT_ISSUER}
@@ -51,4 +50,3 @@ jwt:
 payment:
   toss:
     test_secret_api_key: ${TOSS_TEST_SECRET_KEY}
-

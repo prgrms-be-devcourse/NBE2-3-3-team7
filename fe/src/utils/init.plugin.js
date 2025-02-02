@@ -21,7 +21,6 @@ let calendarInstance = null;
 
 export const initFlatpickr = (range = []) => {
 	if (calendarInstance) calendarInstance.destroy();
-	
 	calendarInstance = flatpickr('#date-range', {
 		mode: "range",
 		dateFormat: "Y-m-d",

@@ -7,28 +7,31 @@ import com.project.popupmarket.dto.user.UserUpdateRequest
 import com.project.popupmarket.entity.BusinessId
 import com.project.popupmarket.entity.User
 import com.project.popupmarket.enums.AuthProvider
+import com.project.popupmarket.exception.custom.S3Exception
 import com.project.popupmarket.repository.BusinessIdRepository
 import com.project.popupmarket.repository.UserRepository
+import com.project.popupmarket.service.aws.S3FileService
 import jakarta.transaction.Transactional
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.util.StringUtils
-import java.util.Optional
+import org.springframework.web.multipart.MultipartFile
 
 @Service
 class UserService(
     private val userRepository: UserRepository,
     private val businessIdRepository: BusinessIdRepository,
     @Value("\${app.upload-path}")
-    private val uploadPath: String
+    private val uploadPath: String,
+    private val s3FileService: S3FileService
 ) {
     private val encoder = BCryptPasswordEncoder()
     private val ALLOWED_EXTENSIONS = listOf(".jpg", ".jpeg", ".png", ".gif")
     private val MAX_FILE_SIZE = 2 * 1024 * 1024L // 2MB
 
     // 이메일로 회원가입 처리
-    fun save(dto: UserRegisterDto): Long {
+    fun save(dto: UserRegisterDto, profile: MultipartFile?): Long {
         validateDuplicateEmail(dto.email)
 
         val user = User(
@@ -43,18 +46,14 @@ class UserService(
 
         val userId = userRepository.save(user).id!!
 
-        businessIdRepository.save(
-            BusinessId(
-                userId = userId,
-                businessId = dto.businessId
-            )
-        )
+        saveBusinessId(userId, dto.businessId)
+        uploadProfileImage(profile, userId)
 
         return userId
     }
 
     // 구글 로그인 회원가입 처리
-    fun save(dto: OAuthSignupRequest, email: String): User? {
+    fun save(dto: OAuthSignupRequest, profile: MultipartFile?, email: String): User? {
         val user = User(
             email = email,
             brand = dto.brand,
@@ -67,14 +66,27 @@ class UserService(
 
         val userId = userRepository.save(user).id!!
 
-        businessIdRepository.save(
-            BusinessId(
-                userId = userId,
-                businessId = dto.businessId
-            )
-        )
+        saveBusinessId(userId, dto.businessId)
+        uploadProfileImage(profile, userId)
 
         return userRepository.findUserInfoById(userId)
+    }
+
+    private fun saveBusinessId(userId: Long, businessId: String?) {
+        val validBusinessId = businessId.takeIf { !it.isNullOrBlank() }
+        validBusinessId?.let {
+            businessIdRepository.save(BusinessId(userId = userId, businessId = it))
+        }
+    }
+
+    private fun uploadProfileImage(profile: MultipartFile?, userId: Long) {
+        try {
+            profile?.let {
+                s3FileService.uploadSingleImage(it, userId, "user")
+            }
+        } catch (e: Exception) {
+            throw S3Exception("$userId : 프로필 이미지 업로드에 실패했습니다.", e)
+        }
     }
 
     fun findById(userId: Long): User {

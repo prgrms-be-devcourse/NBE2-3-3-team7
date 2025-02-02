@@ -40,9 +40,9 @@ class CredentialAuthController {
         // 1. 사용자 인증
         val authenticatedUser: User
         try {
-            authenticatedUser = userService!!.authenticate(request)
+            authenticatedUser = userService.authenticate(request)
         } catch (e: Exception) {
-            System.out.println("error = " + e);
+            println("error = $e")
             return ResponseEntity
                 .status(ErrorCode.INVALID_CREDENTIALS.status)
                 .body(
@@ -55,7 +55,7 @@ class CredentialAuthController {
         }
 
         // 2. 토큰 생성
-        val accessToken = tokenService!!.createAccessToken(authenticatedUser)
+        val accessToken = tokenService.createAccessToken(authenticatedUser)
 
         //        System.out.println("accessToken = " + accessToken);
         val refreshToken = tokenService.createRefreshToken(authenticatedUser)
@@ -75,15 +75,14 @@ class CredentialAuthController {
 
     // 로그아웃
     @PostMapping("/logout")
-    fun logout(request: HttpServletRequest, response: HttpServletResponse): ResponseEntity<Any?> {
+    fun logout(request: HttpServletRequest, response: HttpServletResponse): ResponseEntity<*> {
         return CookieUtil
             .getCookie(request, AuthConstants.JWT_TOKEN_COOKIE_NAME)
             .map { cookie: Cookie ->
-                tokenService!!.deleteRefreshToken(tokenService.getUserIdFromToken(cookie.value))
+                tokenService.deleteRefreshToken(tokenService.getUserIdFromToken(cookie.value))
                 CookieUtil.deleteCookie(request, response, AuthConstants.JWT_TOKEN_COOKIE_NAME)
                 ResponseEntity
-                    .ok()
-                    .build<Any?>()
+                    .ok("")
             }
             .orElse(
                 ResponseEntity

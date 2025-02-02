@@ -5,7 +5,6 @@ import com.project.popupmarket.service.land.RentalLandService
 import com.project.popupmarket.service.receipts.PaymentService
 import com.project.popupmarket.util.UserContextUtil
 import io.swagger.v3.oas.annotations.Operation
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDate
@@ -21,27 +20,30 @@ class PaymentController(
     @GetMapping("/payment")
     @Operation(summary = "임대지 및 예약자 정보 조회")
     fun reservationInfo(
-        @RequestParam landId: Long,
+        @RequestParam land: Long,
         @RequestParam start: LocalDate,
         @RequestParam end: LocalDate
     ): ResponseEntity<ReservationInfoResponse> {
         val reservation = ReservationTO(
             customerId = userContextUtil.userId ?: throw IllegalStateException("사용자 ID가 필요합니다"),
-            landId = landId,
+            landId = land,
             start = start,
             end = end
         )
 
-        val resp = paymentService.getPaymentInfo(reservation)
-        return ResponseEntity.ok(resp)
+        return ResponseEntity.ok(paymentService.getPaymentInfo(reservation))
     }
 
     @PostMapping("/payment")
     @Operation(summary = "임시 결제 내역 추가")
-    fun payment(@RequestBody receipt: ReceiptsTO): ResponseEntity<Void> {
+    fun payment(@RequestBody request: StagingRequest): ResponseEntity<Void> {
         val customerId = userContextUtil.userId
-        receipt.customerId = customerId ?: throw IllegalStateException("사용자 ID가 필요합니다")
-        paymentService.insertStagingPayment(receipt)
+
+        if (request.customerId != customerId) {
+            throw IllegalStateException("사용자 정보가 인증되지 않았습니다.")
+        }
+
+        paymentService.insertStagingPayment(request)
         return ResponseEntity.ok().build()
     }
 
@@ -54,8 +56,8 @@ class PaymentController(
 
     @DeleteMapping("/payment/fail")
     @Operation(summary = "결제 실패, 임시 결제 내역 삭제")
-    fun paymentFail(@RequestBody receipt: ReceiptsTO): ResponseEntity<String> {
-        paymentService.deleteStagingPayment(receipt)
+    fun paymentFail(@RequestBody request: PaymentFailRequest): ResponseEntity<String> {
+        paymentService.deleteStagingPayment(request.orderId)
         return ResponseEntity.ok("success")
     }
 

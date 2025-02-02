@@ -4,6 +4,7 @@ const { VITE_BASE_API_URL } = import.meta.env
 const api = axios.create({
 	baseURL: `${VITE_BASE_API_URL}/api`,
 	timeout: 10000,
+	withCredentials: true,
 });
 
 export const jsonRequest = (url, method, data) => {
@@ -17,15 +18,13 @@ export const jsonRequest = (url, method, data) => {
 	});
 };
 
-export const multipartRequest = (url, method, formData) => {
+export const multipartRequest = (url, method, data) => {
 	return api({
 		url,
 		method,
 		headers: {
 			'Content-Type': 'multipart/form-data',
 		},
-		data: formData,
+		data,
 	});
 };
-
-export default api;

@@ -55,15 +55,16 @@ const handleBusinessIdInput = (event) => {
 const checkBusiness = async () => {
 	try {
 		// 1단계: 사업자 등록 번호 유효성 검사 (API 요청)
-		const isValid = await validateBusinessId(); // 예제: 유효성 검사
+		const isValid = await validateBusinessId(); // 유효성 검사사
 		if (!isValid) {
 			businessError.value = true;
 			businessChecked.value = true;
 			return;
 		}
+		console.log("사업자 등록 번호 유효성 검사 완료");
 
 		// 2단계: 서비스 내 중복 여부 확인 (API 요청)
-		const isExisting = await checkBusinessIdExists(businessId.value); // 예제: 중복 검사
+		const isExisting = await checkBusinessIdExists(businessId.value); // 중복 검사
 		businessExists.value = isExisting;
 		businessError.value = false;
 		businessChecked.value = true;
@@ -73,7 +74,6 @@ const checkBusiness = async () => {
 	}
 };
 
-// Mock: 사업자 등록 번호 유효성 검사 API
 const validateBusinessId = async () => {
 	const request = [
 		{
@@ -85,11 +85,9 @@ const validateBusinessId = async () => {
 
 	const response = await validateBusinessman(request)
 
-
 	return response.data[0].valid === '01';
 };
 
-// 서비스 중복 여부 확인 API
 const checkBusinessIdExists = async (id) => {
 	// TODO -> API로 대체
 	const existingIds = ["1234567890"];
@@ -132,11 +130,22 @@ const passwordOkError = computed(() => {
 });
 
 const canProceed = computed(() => {
-	return (!passwordOkError.value && !passwordError.value && !emailError.value && !emailExists.value && emailChecked.value && businessChecked.value && !businessError.value && !businessExists.value) ||
+	return (signupStore.isLandlord && !passwordOkError.value && !passwordError.value && !emailError.value && !emailExists.value && emailChecked.value && businessChecked.value && !businessError.value && !businessExists.value) ||
+		(signupStore.isCustomer && !passwordOkError.value && !passwordError.value && !emailError.value && !emailExists.value && emailChecked.value) ||
 		(signupStore.social && businessChecked.value && !businessError.value && !businessExists.value);
 });
 
 const proceedToNextPage = () => {
+	if (signupStore.social) {
+		signupStore.setBusiness(businessId.value);
+	} else if (signupStore.isLandlord) {
+		signupStore.setEmail(email.value);
+		signupStore.setPassword(password.value);
+		signupStore.setBusiness(businessId.value);
+	} else {
+		signupStore.setEmail(email.value);
+		signupStore.setPassword(password.value);
+	}
 	router.push('/signup/info');
 };
 </script>
@@ -200,7 +209,7 @@ const proceedToNextPage = () => {
 								class="ms-2 text-left text-red-500 text-sm">*</span></label>
 						<div class="flex w-96 border-2 border-gray-300 p-2 mt-2 space-x-2 rounded-md">
 							<input type="email" id="email" @blur="emailTouched = true" @input="resetEmailCheck"
-								v-model="email" required
+								v-model="email" required autocomplete="off"
 								class="h-12 p-2 flex-1 focus-visible:outline-none focus-visible:border-[#3FB8AF] border-2 border-white transition-colors"
 								placeholder="이메일 주소 입력" />
 							<button @click="checkEmail" :disabled="emailError || !email"
@@ -218,12 +227,12 @@ const proceedToNextPage = () => {
 							이미 사용 중인 이메일입니다.
 						</span>
 					</div>
-					<div v-if="!signupStore.social" class="flex flex-col">
+					<form v-if="!signupStore.social" class="flex flex-col">
 						<label for="password" class="ms-2 text-gray-700 font-bold">비밀번호<span
 								class="ms-2 text-left text-red-500 text-sm">*</span></label>
 						<div class="flex w-96 border-2 border-gray-300 p-2 mt-2 space-x-2 rounded-md">
 							<input :type="isPasswordVisible ? 'text' : 'password'" v-model="password" required
-								id="password" @blur="passwordTouched = true"
+								id="password" @blur="passwordTouched = true" autocomplete="off"
 								class="h-12 p-2 flex-1 focus-visible:outline-[#3FB8AF]"
 								placeholder="8자리 이상 영문, 숫자, 특수문자 포함" />
 							<div class="h-12 p-2 flex items-center justify-center transition-colors rounded-md w-10 text-gray-500 cursor-pointer"
@@ -238,7 +247,7 @@ const proceedToNextPage = () => {
 						<div class="flex w-96 border-2 border-gray-300 p-2 mt-2 space-x-2 rounded-md">
 							<input :type="isPasswordOkVisible ? 'text' : 'password'" @blur="passwordOkTouched = true"
 								v-model="passwordOk" class="h-12 p-2 flex-1 focus-visible:outline-[#3FB8AF]" required
-								placeholder="비밀번호 확인" />
+								placeholder="비밀번호 확인" autocomplete="off"/>
 							<div class="h-12 p-2 flex items-center justify-center transition-colors rounded-md w-10 text-gray-500 cursor-pointer"
 								@click="togglePasswordOkVisibility">
 								<i v-if="isPasswordOkVisible" class="fas fa-eye"></i>
@@ -248,7 +257,7 @@ const proceedToNextPage = () => {
 						<span v-if="passwordOkError && passwordOkTouched" class="ms-2 text-left text-red-500 text-sm">
 							{{ /* v-else 에러 반환 */ "비밀번호가 일치하지 않습니다." }}
 						</span>
-					</div>
+					</form>
 				</div>
 
 				<div>

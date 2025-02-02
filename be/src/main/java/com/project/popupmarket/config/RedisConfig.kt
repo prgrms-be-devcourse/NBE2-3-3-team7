@@ -1,5 +1,6 @@
 package com.project.popupmarket.config
 
+import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator
@@ -54,12 +55,10 @@ class RedisConfig {
 
         // Jackson ObjectMapper 설정
         val objectMapper = ObjectMapper()
-        objectMapper.registerModule(JavaTimeModule())
-        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-        objectMapper.activateDefaultTyping(
-            LaissezFaireSubTypeValidator.instance,
-            ObjectMapper.DefaultTyping.NON_FINAL
-        )
+            .registerModule(JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
 
         val serializer = GenericJackson2JsonRedisSerializer(objectMapper)
 

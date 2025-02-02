@@ -23,7 +23,6 @@ const fetchHomeItem = async () => {
 	try {
 		const result = await homeItem(route.query); // route.query를 그대로 전달
 		data.value = result;
-		console.log(result);
 	} catch (err) {
 		console.error('API 요청 오류:', err);
 	}

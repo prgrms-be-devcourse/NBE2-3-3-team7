@@ -11,6 +11,7 @@ import com.project.popupmarket.service.token.TokenService
 import com.project.popupmarket.service.user.UserService
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Service
+import org.springframework.web.multipart.MultipartFile
 import java.time.Duration
 import java.util.UUID
 
@@ -37,11 +38,11 @@ class OAuth2Service(
     }
 
     // 구글 로그인 회원가입 처리
-    fun handleOAuth2Signup(request: OAuthSignupRequest): LoginResponse {
+    fun handleOAuth2Signup(request: OAuthSignupRequest, profileImage: MultipartFile?): LoginResponse {
         val email = getEmailFromRedis(request.uuid)
             ?: throw AuthenticationException(ErrorCode.UNAUTHORIZED_GOOGLE_REDIS)
 
-        val user = userService.save(request, email)
+        val user = userService.save(request, profileImage, email)
             ?: throw SignupException(ErrorCode.SIGNUP_FAILED)
 
         stringTemplate.delete("${AuthProvider.GOOGLE}${request.uuid}")
@@ -50,10 +51,10 @@ class OAuth2Service(
 
     // Redis에 구글 이메일 정보 임시 저장
     private fun saveTemporaryUserData(email: String): String {
-        val redisKey = "${AuthProvider.GOOGLE}${email}"
         val uuid = UUID.randomUUID().toString()
+        val redisKey = "${AuthProvider.GOOGLE}${uuid}"
         val ops = stringTemplate.opsForValue()
-        ops.set(redisKey, uuid, Duration.ofMinutes(REDIS_TTL_MINUTES))
+        ops.set(redisKey, email, Duration.ofMinutes(REDIS_TTL_MINUTES))
         return uuid
     }
 
