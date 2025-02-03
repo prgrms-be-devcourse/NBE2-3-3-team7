@@ -1,6 +1,8 @@
 package com.project.popupmarket.repository
 
 import com.project.popupmarket.entity.Popup
+import com.project.popupmarket.entity.RentalLand
+import com.project.popupmarket.enums.ActivateStatus
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 import org.springframework.data.domain.Page
@@ -62,6 +64,29 @@ interface PopupJpaRepository : JpaRepository<Popup, Long> {
         @Param("sorting") sorting: String?,
         pageable: Pageable?
     ): Page<Popup>
+
+    @Query(
+        ("SELECT p FROM Popup p "+
+                "WHERE (:address IS NULL OR p.address LIKE CONCAT('%', :address, '%')) " +
+                "AND (:title IS NULL OR LOWER(p.title) LIKE LOWER(CONCAT('%', :title, '%'))) " +
+                "AND (:type IS NULL OR LOWER(p.type) LIKE LOWER(CONCAT('%', :type, '%'))) " +
+                "AND (:status IS NULL OR p.status = :status)")
+    )
+    fun findPopupAdminByFilter(
+        @Param("address") address: String?,
+        @Param("status") status: ActivateStatus?,
+        @Param("title") title: String?,
+        @Param("type") type: String?,
+        @Param("sorting") sorting: String?,
+        pageable: Pageable?
+    ): Page<Popup>
+
+    @Query("""
+    SELECT p.status, COUNT(p) 
+    FROM Popup p 
+    GROUP BY p.status"""
+    )
+    fun countPopupsByStatus(): List<Array<Any>>
 
     @Query("SELECT p.customerId FROM Popup p WHERE p.id = :id")
     fun findUserSeqById(@Param("id") id: Long): Long
