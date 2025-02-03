@@ -66,5 +66,18 @@ interface ReceiptsRepository : JpaRepository<Receipts?, String?>, ReceiptsJDslRe
         @Param("endDate") endDate: LocalDateTime
     ): List<Array<Any>>
 
+    @Query(
+        """SELECT rl.address, SUM(r.amount)
+        FROM Receipts r
+        JOIN RentalLand rl ON r.rentalLandId = rl.id
+        WHERE r.reservedAt BETWEEN :startDate AND :endDate
+        GROUP BY rl.address
+        ORDER BY SUM(r.amount) DESC
+    """)
+    fun findRevenueByAddress(
+        @Param("startDate") startDate: LocalDateTime,
+        @Param("endDate") endDate: LocalDateTime
+    ): List<Array<Any>>
+
 
 }
