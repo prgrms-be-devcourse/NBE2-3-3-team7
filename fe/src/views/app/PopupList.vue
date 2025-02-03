@@ -134,7 +134,8 @@ const fetchPopupList = async () => {
 						</div>
 						<div class="bg-white min-w-60 border px-4 border-gray-300 rounded-md p-2">
 							<label for="date-range" class="font-bold">임대 기간</label>
-							<input type="text" id="date-range" v-model="filterStore.period" placeholder="기간을 선택하세요." class="w-full">
+							<input type="text" id="date-range" v-model="filterStore.period" placeholder="기간을 선택하세요."
+								class="w-full">
 						</div>
 					</div>
 				</div>
@@ -157,8 +158,7 @@ const fetchPopupList = async () => {
 
 		<section class="w-full px-4">
 			<div class="max-w-7xl mx-auto my-6">
-				<div v-if="popup.content.length > 0" id="item-box"
-					class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+				<div v-if="popup.content.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
 					<PopupCard v-for="(item, index) in popup.content" :key="index" :item="item.popup"
 						:thumbnail="item.thumbnail" />
 				</div>
@@ -166,9 +166,9 @@ const fetchPopupList = async () => {
 			</div>
 		</section>
 		<section class="w-full px-4" aria-label="pagination">
-			<div
+			<div v-if="popup.page.totalPages > 0"
 				class="flex items-center flex-col space-y-2 justify-center border-t border-gray-200 bg-white px-4 py-3">
-				<BasePaging v-if="popup.page.totalPages > 0" :totalPages="popup.page.totalPages"
+				<BasePaging :totalPages="popup.page.totalPages" url="/popup"
 					:currentPage="popup.page.number" />
 			</div>
 		</section>

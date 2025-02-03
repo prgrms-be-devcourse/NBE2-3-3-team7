@@ -14,7 +14,8 @@ defineProps({
 </script>
 
 <template>
-	<router-link :to="`/popup/${item.id}`" class="group drop-shadow-lg relative p-4 border m-2 rounded-lg border-gray-300">
+	<router-link :to="`/popup/${item.id}`"
+		class="group drop-shadow-lg relative p-4 border m-2 rounded-lg border-gray-300">
 		<div class="absolute w-full h-full bg-gray-300 opacity-0 group-hover:opacity-50 transition left-0 top-0"></div>
 		<div class="mt-2 block relative overflow-hidden rounded-lg border border-gray-400">
 			<img class="w-full  h-44 object-contain bg-gray-100" :src="thumbnail" :alt="item.title">
@@ -36,6 +37,15 @@ defineProps({
 			<div class="flex justify-between">
 				<span>{{ item.address }}</span>
 				<span>{{ item.type }}</span>
+			</div>
+			<div class="flex justify-between">
+				<!-- <h3 class="text-lg font-bold text-gray-900 hover:text-[#3FB8AF] transition-colors"><a
+						href="/mypage/rental/view/${item.id}">${item.name}</a></h3>
+				<label class="switch-label">
+					<span class="font-bold text-xs">등록 상태</span>
+					<input role="switch" type="checkbox" name="status-switch" data-seq="${item.id}"
+						class="transition-colors" checked />
+				</label> -->
 			</div>
 		</div>
 	</router-link>

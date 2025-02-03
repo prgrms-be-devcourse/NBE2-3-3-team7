@@ -1,8 +1,6 @@
 <script setup>
 import { reactive, ref, computed } from "vue";
-import defaultProfile from '../../../assets/images/default/default_profile.png';
-
-const selectedRole = ref('customer');
+import defaultProfile from '@/assets/images/default/default_profile.png';
 
 const upload = ref(null);
 const selectedFile = ref(null);
@@ -272,22 +270,22 @@ const saveUser = () => {
 						</div>
 						<div class="flex flex-col">
 							<label for="brand" class="ms-2 text-gray-700 font-bold">
-								{{ selectedRole !== 'landlord' ? "닉네임" : "상호명" }}
+								닉네임
 								<span class="ms-2 text-left text-red-500 text-sm">*</span>
 							</label>
 							<div class="flex w-96 border-2 border-gray-300 p-2 mt-2 space-x-2 rounded-md">
 								<input type="text" id="brand" @blur="brandTouched = true" @input="resetBrandCheck"
 									v-model="brand" required
 									class="h-12 p-2 flex-1 focus-visible:outline-none focus-visible:border-[#3FB8AF] border-2 border-white transition-colors"
-									:placeholder="selectedRole !== 'landlord' ? '닉네임 입력' : '상호명 입력'" />
+									placeholder="닉네임 입력" />
 								<button @click="checkBrand" :disabled="!brand" type="button"
 									class="h-12 border p-2 bg-[#3FB8AF] hover:bg-[#2c817c] disabled:bg-gray-300 text-white font-bold transition-colors rounded-md">확인</button>
 							</div>
 							<span v-if="brandChecked && brandExists" class="ms-2 text-left text-red-500 text-sm">
-								이미 사용 중인 {{ selectedRole !== 'landlord' ? "닉네임" : "상호명" }}입니다.
+								이미 사용 중인 닉네임입니다.
 							</span>
 							<span v-if="brandChecked && !brandExists" class="ms-2 text-left text-blue-500 text-sm">
-								사용이 가능한 {{ selectedRole !== 'landlord' ? "닉네임" : "상호명" }}입니다.
+								사용이 가능한 닉네임입니다.
 							</span>
 						</div>
 						<div class="flex flex-col">

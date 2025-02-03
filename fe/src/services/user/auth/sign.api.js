@@ -30,3 +30,14 @@ export const signupSocial = async (data) => {
 	return { success: true, message: "회원가입을 성공했습니다." };
 }
 
+export const findEmail = async (data) => {
+	const response = await jsonRequest('/user/email', 'POST', data);
+
+	return response.data;
+}
+
+export const findBusinessId = async (data) => {
+	const response = await jsonRequest('/user/business', 'POST', data);
+
+	return response.data;
+}

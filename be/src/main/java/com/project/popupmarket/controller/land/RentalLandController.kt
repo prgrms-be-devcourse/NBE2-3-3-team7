@@ -3,6 +3,7 @@ package com.project.popupmarket.controller.land
 import com.project.popupmarket.dto.land.RentalLandRespTO
 import com.project.popupmarket.dto.land.RentalLandTO
 import com.project.popupmarket.dto.land.LandDetailResponse
+import com.project.popupmarket.enums.ActivateStatus
 import com.project.popupmarket.service.land.RentalLandService
 import com.project.popupmarket.service.receipts.PaymentService
 import com.project.popupmarket.util.UserContextUtil
@@ -69,10 +70,12 @@ class RentalLandController(
     // [ Read ] - 3 : 관리 중인 임대지 목록
     @GetMapping("/land/user")
     @Operation(summary = "사용자 임대지 리스트")
-    fun userRentalList(): List<RentalLandRespTO> {
+    fun userRentalList(@RequestParam(defaultValue = "0") page: Int): Page<RentalLandRespTO> {
         val userSeq = userContextUtil.userId ?: throw IllegalStateException("사용자 ID가 필요합니다")
 
-        return rentalLandService.findByUserId(userSeq)
+        val pageable: Pageable? = PageRequest.of(page, 10)
+
+        return rentalLandService.findByUserId(userSeq, pageable)
     }
 
     // [ Read ] - 4 : 임대지 상세 보기
@@ -128,7 +131,7 @@ class RentalLandController(
     @Operation(summary = "임대지 상태 변경 -> [ACTIVE, INACTIVE]")
     fun updateRentalStatus(
         @PathVariable("id") id: Long,
-        @RequestBody status: String
+        @RequestBody status: ActivateStatus
     ): ResponseEntity<Void> {
         rentalLandService.updateStatus(id, status)
         return ResponseEntity.ok().build()

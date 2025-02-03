@@ -1,7 +1,6 @@
 export const getKorDateRange = (startDate, endDate) => {
 	const start = new Date(startDate);
 	const end = new Date(endDate);
-
 	const sYear = start.getFullYear();
 	const sMonth = start.getMonth() + 1;
 	const sDay = start.getDate();
@@ -64,7 +63,7 @@ export const imageSlider = () => {
 // 	const addr = document.getElementById('addr');
 
 // 	new daum.Postcode({
-// 		oncomplete: function(data) {
+// 		oncomplete: function (data) {
 // 			var roadAddr = data.roadAddress; // 도로명 주소 변수
 
 // 			postcode.value = data.zonecode;

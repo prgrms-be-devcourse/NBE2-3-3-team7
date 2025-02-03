@@ -32,16 +32,15 @@ const loadKakaoMap = (container, addr) => {
 	geocoder.addressSearch(addr, function (result, status) {
 		if (status === window.kakao.maps.services.Status.OK) {
 			let coords = new window.kakao.maps.LatLng(result[0].y, result[0].x);
-			// let marker = new window.kakao.maps.Marker({
-			new window.kakao.maps.Marker({
+			let marker = new window.kakao.maps.Marker({
 				map: map,
 				position: coords
 			});
 
-			// let info = new window.kakao.maps.InfoWindow({
-			// 	content: `<div style="width:150px;text-align:center;padding:6px 0;">&#8595;</div>`
-			// });
-			// info.open(map, marker);
+			let info = new window.kakao.maps.InfoWindow({
+				content: `<div style="width:150px;text-align:center;padding:6px 0;">임대지 위치</div>`
+			});
+			info.open(map, marker);
 			map.setCenter(coords);
 		}
 	});

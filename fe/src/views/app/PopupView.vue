@@ -98,7 +98,7 @@ const images = computed(() => data.value.images ?? []);
 									<p id="place-full-address">{{ `[${popup.zipcode}] ${popup.address}, ${popup.addrDetail}` }}</p>
 									<div class="border border-gray-300 rounded-md">
 										<div class="h-80 w-full bg-gray-200 items-center flex justify-center">
-											<KakaoMap :addr="popup.address" />
+											<KakaoMap :data="popup.address" />2
 										</div>
 									</div>
 								</div>

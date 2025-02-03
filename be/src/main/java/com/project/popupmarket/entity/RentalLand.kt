@@ -54,5 +54,5 @@ class RentalLand {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    var status: ActivateStatus? = null
+    var status: ActivateStatus? = ActivateStatus.ACTIVE
 }

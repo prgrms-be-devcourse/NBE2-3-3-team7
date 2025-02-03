@@ -1,38 +1,60 @@
 <script setup>
-import { RouterLink } from "vue-router";
+import { onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import ReservationItem from "@/components/user/ReservationItem.vue";
+import BasePaging from '@/components/common/BasePaging.vue';
+import NoItem from '@/components/common/NoItem.vue';
+import RouterBack from '@/components/common/RouterBack.vue';
+import { reservationByLand } from '@/services/user/user.payment';
 
-const land = [
-	{ title: "임대지1", id: "1", reserve: "1234", image: "https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?ixlib=rb-1.2.1&amp;ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;auto=format&amp;fit=crop&amp;w=320&amp;h=160&amp;q=80", date: "25-01-16 ~ 25-01-29", status: "결제 완료", price: "10,000", totalPrice: "50,000", },
-	{ title: "임대지1", id: "1", reserve: "1234", image: "https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?ixlib=rb-1.2.1&amp;ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;auto=format&amp;fit=crop&amp;w=320&amp;h=160&amp;q=80", date: "25-01-16 ~ 25-01-29", status: "결제 완료", price: "10,000", totalPrice: "50,000", },
-];
+const route = useRoute();
+
+const reservation = ref({ content: [], page: { totalPages: 0, number: 0 } });
+const landTitle = ref("");
+
+onMounted(async () => {
+	await fetchReservation()
+})
+
+watch(
+	() => route.query,
+	() => {
+		fetchReservation();
+	},
+	{ deep: true }
+);
+
+const fetchReservation = async () => {
+	try {
+		const result = await reservationByLand(route.params.id, route.query);
+		reservation.value = result.reservation;
+		landTitle.value = result.landTitle
+	} catch (err) {
+		console.error('API 요청 오류:', err);
+	}
+};
 
 </script>
 
 <!-- /user/land/:id/reservation -->
 <template>
 	<main class="flex-grow flex flex-col items-center relative">
-		<div class="absolute top-4 flex items-center justify-between w-full max-w-3xl mx-auto px-4">
-			<router-link to="/user/land"
-				class="text-black bg-white hover:bg-gray-100 py-2 px-4 rounded-md transition-colors font-bold cursor-pointer">
-				<i class="fas fa-angles-left"></i> 임대지 목록
-			</router-link>
-			<!-- 임대지 예약 내역 -->
-			<h3 class="text-base font-semibold text-right flex-grow">임대지 예약 내역</h3>
-		</div>
-		<div class="container mx-auto p-4 mt-12">
-			<hr class="border-t border-gray-400 my-0.5 max-w-2xl mx-auto" />
-			<br>
-			<div class="space-y-4">
-				<ReservationItem v-for="(item, index) in land" :key="index" :image="item.image" :title="item.title"
-					:id="item.id" :reserve="item.reserve" :date="item.date" :status="item.status"
-					:price="item.price" :totalPrice="item.totalPrice" :link="item.link" />
-			</div>
-		</div>
+		<RouterBack link="/user/land" text="임대지 예약 내역 목록" >
+			<h3 class="text-base font-semibold text-right flex-grow">{{ landTitle }}</h3>
+		</RouterBack>
 		<section class="mt-4 w-full px-4">
-			<div class="max-w-3xl mx-auto">
-				<div id="my-places-box" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-4">
+			<div class="max-w-4xl mx-auto my-6">
+				<div v-if="reservation.content.length > 0" class="grid grid-cols-1 gap-5">
+					<ReservationItem v-for="(item, index) in reservation.content" :key="index" :item="item" />
 				</div>
+				<NoItem v-else message="예약 내역이 존재하지 않습니다." />
+			</div>
+		</section>
+		<section class="flex py-4 max-w-5xl w-full border-b border-gray-300 justify-center px-4"
+			aria-label="pagination">
+			<div v-if="reservation.page.totalPages > 0"
+				class="flex items-center flex-col space-y-2 justify-center bg-white px-4 py-3">
+				<BasePaging :totalPages="reservation.page.totalPages" :currentPage="reservation.page.number" url="/user/land" />
 			</div>
 		</section>
 	</main>

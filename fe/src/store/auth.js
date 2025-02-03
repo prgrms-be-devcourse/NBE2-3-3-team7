@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { signout, signinEmail } from '@/services/user/auth/sign.api';
+import { signout } from '@/services/user/auth/sign.api';
 import { getUserInfo } from '@/services/user/user.api';
 
 export const useAuthStore = defineStore('auth', {
@@ -8,16 +8,6 @@ export const useAuthStore = defineStore('auth', {
 		user: null,
 	}),
 	actions: {
-		async login(email, password) {
-			try {
-				const response = await signinEmail({ email: email.value, password: password.value });
-				localStorage.setItem('token', response.accessToken);
-				this.isLoggedIn = true;
-			} catch (err) {
-				console.error(err);
-			}
-		},
-
 		async fetchUser() {
 			try {
 				const response = await getUserInfo();

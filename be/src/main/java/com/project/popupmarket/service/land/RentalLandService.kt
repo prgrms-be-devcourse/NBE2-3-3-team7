@@ -4,6 +4,7 @@ import com.project.popupmarket.dto.land.RentalLandRespTO
 import com.project.popupmarket.dto.land.RentalLandTO
 import com.project.popupmarket.entity.RentalLand
 import com.project.popupmarket.enums.ActivateStatus
+import com.project.popupmarket.enums.AgeGroup
 import com.project.popupmarket.exception.custom.ResourceNotFoundException
 import com.project.popupmarket.exception.custom.S3Exception
 import com.project.popupmarket.repository.RentalLandJpaRepository
@@ -82,10 +83,10 @@ class RentalLandService(
     }
 
     //  2 - 3. Read : 관리 중인 임대지 목록
-    fun findByUserId(userSeq: Long): List<RentalLandRespTO> {
+    fun findByUserId(userSeq: Long, pageable: Pageable?): Page<RentalLandRespTO> {
         val modelMapper = ModelMapper()
 
-        val rentalLandRespTO = rentalLandJpaRepository.findByUserId(userSeq)
+        val rentalLandRespTO = rentalLandJpaRepository.findByUserId(userSeq, pageable)
             .map { rp ->
                 val rentalLandTO = modelMapper.map(rp, RentalLandTO::class.java)
 
@@ -149,6 +150,42 @@ class RentalLandService(
         return rentalLandPage
     }
 
+    // 2 - 6. Read : 사용자의 임대지 10개 조회
+    fun findByLandlordIdWithLimit(landlordId: Long): List<RentalLandRespTO> {
+        val rentalLandRespTO = rentalLandJpaRepository.findByLandlordIdWithLimit(landlordId)
+            .map { rp ->
+                val rentalLandTO = mappedToRentalLandTO(rp)
+                val thumbnailFilePath = "land/${rentalLandTO.id}_thumbnail.png"
+                val thumbnailUrl = s3FileService.getCloudFrontImageUrl(thumbnailFilePath)
+
+                RentalLandRespTO(
+                    rentalLand = rentalLandTO,
+                    thumbnail = thumbnailUrl,
+                    images = null,
+                )
+            }
+
+        return rentalLandRespTO
+    }
+
+    private fun mappedToRentalLandTO(rp :RentalLand) :RentalLandTO {
+        return RentalLandTO(
+            id = rp.id,
+            landlordId = rp.landlordId,
+            price = rp.price,
+            zipcode = rp.zipcode,
+            address = rp.address,
+            addrDetail = rp.addrDetail,
+            description = rp.description,
+            infra = rp.infra,
+            title= rp.title,
+            area = rp.area,
+            ageGroup = rp.ageGroup?.desc,
+            registeredAt = rp.registeredAt,
+            status = rp.status.toString()
+        )
+    }
+
     // 1. Create : 임대지 추가
     @Transactional
     fun insert(
@@ -160,6 +197,8 @@ class RentalLandService(
             val mapper = ModelMapper()
             to.status = ActivateStatus.ACTIVE.toString()
             val rentalLand = mapper.map(to, RentalLand::class.java)
+
+            rentalLand.ageGroup = AgeGroup.fromDisplayName(to.ageGroup!!)
 
             val savedPlace = rentalLandJpaRepository.save(rentalLand)
             val id = savedPlace.id
@@ -186,11 +225,10 @@ class RentalLandService(
 
     // 3. Update : 임대지 상태 변경 -> [ACTIVE, INACTIVE]
     @Transactional
-    fun updateStatus(id: Long, status: String) {
+    fun updateStatus(id: Long, status: ActivateStatus) {
         try {
-            val changedStatus = ActivateStatus.valueOf(status)
 
-            rentalLandJpaRepository.updateStatusById(id, changedStatus.name)
+            rentalLandJpaRepository.updateStatusById(id, status)
         } catch (e: IllegalArgumentException) {
             throw RuntimeException(e)
         }

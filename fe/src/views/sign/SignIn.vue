@@ -1,10 +1,11 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { signinEmail } from '@/services/user/auth/sign.api';
 import { useAuthStore } from '@/store/auth';
 
 const router = useRouter();
-const authStore = useAuthStore();
+const auth = useAuthStore();
 
 let error = ref(false);
 const signinChecked = ref(false);
@@ -21,8 +22,11 @@ let passwordTouched = ref(false);
 
 const fetchSignin = async () => {
 	signinChecked.value = true;
+
 	try {
-		await authStore.login(email, password);
+		const response = await signinEmail({ email: email.value, password: password.value });
+		localStorage.setItem('token', response.accessToken);
+		auth.isLoggedIn = true;
 		router.push('/');
 	} catch (err) {
 		console.error('로그인 오류:', err);

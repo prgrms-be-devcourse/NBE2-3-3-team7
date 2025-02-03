@@ -5,6 +5,9 @@ import com.project.popupmarket.service.land.RentalLandService
 import com.project.popupmarket.service.receipts.PaymentService
 import com.project.popupmarket.util.UserContextUtil
 import io.swagger.v3.oas.annotations.Operation
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDate
@@ -63,20 +66,27 @@ class PaymentController(
 
     @GetMapping("/receipt")
     @Operation(summary = "사용자 결제 내역 리스트 조회")
-    fun receipt(): ResponseEntity<List<ReceiptsInfoTO>> {
+    fun receipt(@RequestParam(defaultValue = "0") page: Int): ResponseEntity<Page<ReceiptsInfoTO>> {
         val userId = userContextUtil.userId ?: throw IllegalStateException("사용자 ID가 필요합니다")
-        return ResponseEntity.ok(paymentService.getReceiptsInfoByCustomerId(userId))
+        val pageable: Pageable = PageRequest.of(page, 10)
+
+        return ResponseEntity.ok(paymentService.getReceiptsInfoByCustomerId(userId, pageable))
     }
 
     @GetMapping("/reservation/{landId}")
     @Operation(summary = "임대지 예약 리스트 조회")
-    fun reservation(@PathVariable landId: Long): ResponseEntity<ReservationResponse> {
-        val landTitle = rentalLandService.findById(landId).title
-        val reservations = paymentService.getReceiptsInfoByLandId(landId)
+    fun reservation(@PathVariable landId: Long, @RequestParam(defaultValue = "0") page: Int): ResponseEntity<ReservationResponse> {
+
+        val pageable: Pageable = PageRequest.of(page, 10)
+
+        val landTitle = rentalLandService.findById(landId).title!!
+
+        val reservations = paymentService.getReceiptsInfoByLandId(landId, pageable)
+
 
         return ResponseEntity.ok(
             ReservationResponse(
-                landTitle = landTitle.toString(),
+                landTitle = landTitle,
                 reservation = reservations
             )
         )

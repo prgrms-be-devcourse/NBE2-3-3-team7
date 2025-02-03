@@ -25,10 +25,17 @@ const telTouched = ref(false);
 const telChecked = ref(false);
 const telExists = ref(false);
 
+const setDefaultFile = async () => {
+    const response = await fetch(defaultProfile);
+    const blob = await response.blob();
+    selectedFile.value = new File([blob], "default_profile.png", { type: blob.type });
+};
+
 onMounted(() => {
 	if (signupStore.role === null) {
 		router.push('/signup/role');
 	}
+	setDefaultFile();
 });
 
 const uploadImage = () => {
@@ -61,18 +68,17 @@ const handleFileChange = (event) => {
 	}
 };
 
-
-const telError = computed(() => {
-	const regex = /^\d{3}-\d{3,4}-\d{4}$/;
-	return !regex.test(tel.value);
-});
-
 const canProceed = computed(() => !telError.value && !telExists.value && telChecked.value && !brandExists.value && brandChecked.value && name.value);
 
 const resetBrandCheck = () => {
 	brandExists.value = false;
 	brandChecked.value = false;
 };
+
+const telError = computed(() => {
+	const regex = /^\d{3}-\d{3,4}-\d{4}$/;
+	return !regex.test(tel.value);
+});
 
 const resetAndFormattedTel = (e) => {
 	let inputValue = e.target.value;

@@ -18,13 +18,16 @@ interface RentalLandJpaRepository : JpaRepository<RentalLand, Long> {
     @Query(value = "SELECT rp FROM RentalLand rp ORDER BY rp.registeredAt DESC LIMIT 10")
     fun findByLimit(): List<RentalLand>
 
+    @Query(value = "SELECT rp FROM RentalLand rp WHERE rp.landlordId = :landlordId ORDER BY rp.registeredAt DESC LIMIT 10")
+    fun findByLandlordIdWithLimit(@Param("landlordId") landlordId: Long): List<RentalLand>
+
     @Query(
         ("SELECT rp " +
                 "FROM RentalLand rp " +
                 "WHERE rp.landlordId = :userId " +
                 "ORDER BY rp.registeredAt DESC")
     )
-    fun findByUserId(@Param("userId") userId: Long): List<RentalLand>
+    fun findByUserId(@Param("userId") userId: Long, pageable: Pageable?): Page<RentalLand>
 
     @Query(
         ("SELECT rp " +
@@ -103,5 +106,5 @@ interface RentalLandJpaRepository : JpaRepository<RentalLand, Long> {
 
     @Modifying
     @Query("UPDATE RentalLand r SET r.status = :status WHERE r.id = :id")
-    fun updateStatusById(@Param("id") id: Long, @Param("status") status: String)
+    fun updateStatusById(@Param("id") id: Long, @Param("status") status: ActivateStatus)
 }

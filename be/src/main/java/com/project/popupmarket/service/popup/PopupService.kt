@@ -5,6 +5,7 @@ import com.project.popupmarket.dto.popup.PopupRespTO
 import com.project.popupmarket.dto.popup.PopupTO
 import com.project.popupmarket.entity.Popup
 import com.project.popupmarket.enums.ActivateStatus
+import com.project.popupmarket.enums.AgeGroup
 import com.project.popupmarket.exception.custom.ResourceNotFoundException
 import com.project.popupmarket.exception.custom.S3Exception
 import com.project.popupmarket.repository.PopupJpaRepository
@@ -21,7 +22,7 @@ import java.time.LocalDate
 @Service
 class PopupService(
     private val popupJpaRepository: PopupJpaRepository,
-    private val s3FileService: S3FileService
+    private val s3FileService: S3FileService,
 ) {
     // 해당 번호 팝업 찾아 TO로 반환
     fun findById(id: Long): PopupTO {
@@ -29,13 +30,13 @@ class PopupService(
             .map { popup ->
                 ModelMapper().map(popup, PopupTO::class.java)
             }
-            .orElseThrow{ ResourceNotFoundException("$id 의 팝업 게시글이 없습니다.") }
+            .orElseThrow { ResourceNotFoundException("$id 의 팝업 게시글이 없습니다.") }
     }
 
     // 1. GET Popup By Id : 임대지 상세 정보
     fun getUserWithImages(id: Long): PopupRespTO {
         return popupJpaRepository.findById(id)
-            .map<PopupRespTO> { popup: Popup ->
+            .map { popup: Popup ->
                 val popupTO = ModelMapper().map(popup, PopupTO::class.java)
 
                 val thumbnailFilePath = "popup/${popupTO.id}_thumbnail.png"
@@ -52,16 +53,15 @@ class PopupService(
                 respTo.images = imageUrls
                 respTo
             }
-            .orElseThrow { ResourceNotFoundException("$id 의 팝업 게시글이 없습니다.")}
+            .orElseThrow { ResourceNotFoundException("$id 의 팝업 게시글이 없습니다.") }
     }
 
     // 2. GET Filtered Popup
     fun findFilterWithPagination(
         targetLocation: String?, type: String?, targetAgeGroup: String?,
         startDate: LocalDate?, endDate: LocalDate?, sorting: String?,
-        pageable: Pageable?
-    ) : Page<PopupRespTO> {
-        val modelMapper = ModelMapper()
+        pageable: Pageable?,
+    ): Page<PopupRespTO> {
         val popupRespTO = popupJpaRepository
             .findFilteredWithPagination(
                 targetLocation, type, targetAgeGroup, startDate, endDate,
@@ -75,30 +75,31 @@ class PopupService(
     }
 
     // 3. GET User's Popup
-    fun findPopupByUserId(userSeq: Long): List<PopupRespTO> {
-        val modelMapper = ModelMapper()
-
-        val popupRespTO = popupJpaRepository.findPopupByUserId(userSeq)
-            .map{ po ->
+    fun findPopupByUserId(userId: Long, pageable: Pageable?): Page<PopupRespTO> {
+        val popupRespTO = popupJpaRepository.findPopupByUserIdWithPagination(userId, pageable)
+            .map { po ->
                 mappedPopupRespTO(po)
             }
-        if (popupRespTO.isEmpty()) {
-            throw ResourceNotFoundException("사용자의 팝업 리스트가 없습니다.")
-        }
+
         return popupRespTO
     }
 
     // 4. GET Main Popup
     fun findWithLimit(): List<PopupRespTO> {
-        val modelMapper = ModelMapper()
-
         val popupRespTO = popupJpaRepository.findWithLimit()
-            .map{ po ->
+            .map { po ->
                 mappedPopupRespTO(po)
             }
-        if (popupRespTO.isEmpty()) {
-            throw ResourceNotFoundException("팝업에 대한 데이터가 없습니다.")
-        }
+
+        return popupRespTO
+    }
+
+    fun findByCustomerIdWithLimit(customerId: Long): List<PopupRespTO> {
+        val popupRespTO = popupJpaRepository.findByCustomerIdWithLimit(customerId)
+            .map { po ->
+                mappedPopupRespTO(po)
+            }
+
         return popupRespTO
     }
 
@@ -130,12 +131,14 @@ class PopupService(
     fun createPopup(
         to: PopupTO,
         thumbnail: MultipartFile,
-        images: List<MultipartFile>
+        images: List<MultipartFile>,
     ) {
         try {
             val mapper = ModelMapper()
             to.status = ActivateStatus.ACTIVE.toString()
             val popup = mapper.map(to, Popup::class.java)
+
+            popup.ageGroup = AgeGroup.fromDisplayName(to.ageGroup!!)
 
             val savedPlace = popupJpaRepository.save(popup)
             val id = savedPlace.id
@@ -162,11 +165,9 @@ class PopupService(
 
     // PUT Popup : 팝업 상태 변경 -> [ACTIVE, INACTIVE]
     @Transactional
-    fun updatePopupStatus(id: Long, status: String) {
+    fun updatePopupStatus(id: Long, status: ActivateStatus) {
         try {
-            val changedStatus = ActivateStatus.valueOf(status)
-
-            popupJpaRepository.updateStatusById(id, changedStatus.name)
+            popupJpaRepository.updateStatusById(id, status)
         } catch (e: IllegalArgumentException) {
             throw RuntimeException(e)
         }
@@ -201,7 +202,7 @@ class PopupService(
         }
     }
 
-    private fun mappedPopupRespTO(po: Popup): PopupRespTO{
+    private fun mappedPopupRespTO(po: Popup): PopupRespTO {
         val popupTO = PopupTO(
             id = po.id,
             customerId = po.customerId,

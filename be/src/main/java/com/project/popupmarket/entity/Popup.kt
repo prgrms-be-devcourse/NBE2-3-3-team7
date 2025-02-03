@@ -53,7 +53,7 @@ class Popup(
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    var status: ActivateStatus? = null,
+    var status: ActivateStatus = ActivateStatus.ACTIVE,
 )
 {
     // 기본 생성자

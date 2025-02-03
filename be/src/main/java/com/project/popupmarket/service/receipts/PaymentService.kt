@@ -10,7 +10,10 @@ import com.project.popupmarket.repository.RentalLandJpaRepository
 import com.project.popupmarket.repository.UserRepository
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
+import java.time.LocalDate
 import java.util.*
 
 @Service
@@ -119,12 +122,16 @@ class PaymentService(
         }
     }
 
-    fun getReceiptsInfoByLandId(landId: Long): List<ReceiptsInfoTO> {
-        return receiptsRepository.getReceiptsByLandId(landId)
+    fun getReceiptsInfoByLandId(landId: Long, pageable: Pageable): Page<ReceiptsInfoTO> {
+        return receiptsRepository.getReceiptsByLandId(landId, pageable)
     }
 
-    fun getReceiptsInfoByCustomerId(customerId: Long): List<ReceiptsInfoTO> {
-        return receiptsRepository.getReceiptsByCustomerId(customerId)
+    fun getReceiptsInfoByCustomerId(customerId: Long, pageable: Pageable): Page<ReceiptsInfoTO> {
+        return receiptsRepository.getReceiptsByCustomerId(customerId, pageable)
+    }
+
+    fun getReceiptsInfoByCustomerIdWithLimit(customerId: Long): List<ReceiptsInfoTO> {
+        return receiptsRepository.getReceiptsByCustomerIdWithLimit(customerId)
     }
 
     @Transactional
@@ -144,6 +151,13 @@ class PaymentService(
         )
 
         tossRequestService.cancelPayment(payment.paymentKey, "시스템 에러로 인한 결제 취소")
+    }
+
+    fun getMonthlyAnalytics(landlordId: Long) :List<AnalyticsTO> {
+        val endDate = LocalDate.now().atStartOfDay()
+        val startDate = endDate.minusDays(30)
+
+        return receiptsRepository.getMonthlyAnalytics(landlordId, startDate, endDate)
     }
 
     fun getRangeDates(rentalPlaceSeq: Long): List<RangeDateTO> {

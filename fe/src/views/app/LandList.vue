@@ -161,7 +161,7 @@ const fetchLandList = async () => {
 		<section class="w-full px-4" aria-label="pagination">
 			<div
 				class="flex items-center flex-col space-y-2 justify-center border-t border-gray-200 bg-white px-4 py-3">
-				<BasePaging v-if="land.page.totalPages > 0" :totalPages="land.page.totalPages" :currentPage="land.page.number" />
+				<BasePaging v-if="land.page.totalPages > 0" :totalPages="land.page.totalPages" :currentPage="land.page.number" url="/land"/>
 			</div>
 		</section>
 	</main>

@@ -17,6 +17,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.util.StringUtils
 import org.springframework.web.multipart.MultipartFile
+import kotlin.jvm.optionals.getOrNull
 
 @Service
 class UserService(
@@ -24,7 +25,7 @@ class UserService(
     private val businessIdRepository: BusinessIdRepository,
     @Value("\${app.upload-path}")
     private val uploadPath: String,
-    private val s3FileService: S3FileService
+    private val s3FileService: S3FileService,
 ) {
     private val encoder = BCryptPasswordEncoder()
     private val ALLOWED_EXTENSIONS = listOf(".jpg", ".jpeg", ".png", ".gif")
@@ -98,6 +99,14 @@ class UserService(
         return userRepository.findByEmail(email)
     }
 
+    fun findByBusinessId(businessId: String): String? {
+        return businessIdRepository.findByBusinessId(businessId)
+    }
+
+    fun findBusinessIdByUserId(userId: Long): String? {
+        return businessIdRepository.findById(userId).orElse(null)?.businessId
+    }
+
     @Transactional
     fun updateUser(userId: Long, request: UserUpdateRequest) {
         val user = userRepository.findById(userId)
@@ -105,13 +114,15 @@ class UserService(
 
         // 비밀번호 업데이트
         if (StringUtils.hasText(request.password)) {
-            user.setPassword(request.password)
+            user.setPassword(encoder.encode(request.password))
+        }
+
+        if (request.profileImage != null) {
+            s3FileService.uploadSingleImage(request.profileImage!!, userId, "user")
         }
 
         // 기본 정보 업데이트
-        if (StringUtils.hasText(request.name)) user.name = request.name
         if (StringUtils.hasText(request.brand)) user.brand = request.brand
-        if (StringUtils.hasText(request.tel)) user.tel = request.tel
 
         userRepository.save(user)
     }

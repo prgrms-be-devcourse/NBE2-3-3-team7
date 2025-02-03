@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Operation
 import org.springframework.http.ResponseEntity
 import com.project.popupmarket.dto.popup.PopupRespTO
 import com.project.popupmarket.dto.popup.PopupTO
+import com.project.popupmarket.enums.ActivateStatus
 import com.project.popupmarket.util.UserContextUtil
 import lombok.RequiredArgsConstructor
 import org.springframework.data.domain.Page
@@ -54,10 +55,10 @@ class PopupController (
     // [ Read ] - 3 : 관리 중인 팝업 목록
     @GetMapping("/popup/user")
     @Operation(summary = "사용자 팝업 리스트")
-    fun userPopupList(): List<PopupRespTO> {
-        val userSeq = userContextUtil.userId ?: throw IllegalStateException("사용자 ID가 필요합니다")
-
-        return popupService.findPopupByUserId(userSeq)
+    fun userPopupList( @RequestParam(defaultValue = "0") page: Int ): Page<PopupRespTO> {
+        val userId = userContextUtil.userId ?: throw IllegalStateException("사용자 ID가 필요합니다")
+        val pageable: Pageable = PageRequest.of(page, 10)
+        return popupService.findPopupByUserId(userId, pageable)
     }
 
     // [ CREATE ]
@@ -99,7 +100,7 @@ class PopupController (
     @Operation(summary = "팝업 상태 변경 -> [ACTIVE, INACTIVE]")
     fun updatePopupStatus(
         @PathVariable("id") id: Long,
-        @RequestBody status: String
+        @RequestBody status: ActivateStatus
     ): ResponseEntity<Void> {
         popupService.updatePopupStatus(id, status)
         return ResponseEntity.ok().build()

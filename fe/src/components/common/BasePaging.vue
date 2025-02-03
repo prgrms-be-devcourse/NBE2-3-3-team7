@@ -7,7 +7,8 @@ const route = useRoute();
 
 const props = defineProps({
 	totalPages: Number,
-	currentPage: Number
+	currentPage: Number,
+	url: String,
 });
 
 // TODO: 추후 데이터 많이 넣어보고 테스트 필요
@@ -23,7 +24,7 @@ const displayedPages = computed(() => {
 const changePage = (page) => {
 	const newPage = Number(page);
 	if (newPage >= 0 && newPage < props.totalPages) {
-		router.push({ path: '/land', query: { ...route.query, page: newPage } });
+		router.push({ path: props.url, query: { ...route.query, page: newPage } });
 	}
 };
 </script>

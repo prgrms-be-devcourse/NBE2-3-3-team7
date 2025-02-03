@@ -1,4 +1,33 @@
 <script setup>
+import { onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+const data = ref({});
+
+onMounted(async () => {
+	await fetchPopupView();
+})
+
+const fetchPopupView = async () => {
+	try {
+		const result = await landView(popupId); // route.query를 그대로 전달
+		data.value = result;
+	} catch (err) {
+		console.error('API 요청 오류:', err);
+		router.push('/user/popup');
+	}
+};
+
+const deletePopupStore = async () => {
+	try {
+		await popupDelete(popupId);
+		alert('팝업이 삭제되었습니다.')
+		router.push('/user/land');
+	} catch (err) {
+		console.log(err);
+	}
+}
 </script>
 
 <template>

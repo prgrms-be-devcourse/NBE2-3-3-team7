@@ -74,7 +74,7 @@ const totalPrice = computed(() => {
 			<div class="max-w-7xl w-full flex items-center flex-shrink-0">
 				<router-link to="/land" class="font-bold p-2 space-x-2 flex items-center">
 					<i class="fas fa-angles-left"></i>
-					<span id="title" class="font-bold text-xl">{{ title }}</span>
+					<span id="title" class="font-bold text-xl">{{ land.title }}</span>
 				</router-link>
 				
 			</div>
