@@ -22,7 +22,7 @@ interface UserRepository : JpaRepository<User, Long> {
         GROUP BY u.role
     """
     )
-    fun countUsersByRole(): List<Array<Any?>?>?
+    fun countUsersByRole(): List<Array<Any>>
 
     @Query(
         """
@@ -35,5 +35,5 @@ interface UserRepository : JpaRepository<User, Long> {
     fun findUsersByRegisteredAtBetween(
         @Param("startDate") startDate: LocalDateTime?,
         @Param("endDate") endDate: LocalDateTime?,
-    ): List<Array<Any?>?>?
+    ): List<Array<Any>>
 }
