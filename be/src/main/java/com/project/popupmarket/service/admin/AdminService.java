@@ -23,10 +23,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -141,6 +138,7 @@ public class AdminService {
         return AdminPeriodAnalyticsTO.builder()
                 .current(formattedCurrentSales)
                 .prev(formattedPreviousSales)
+                .data(getRevenueByRegion(startDate, endDate))
                 .build();
     }
 
@@ -165,7 +163,47 @@ public class AdminService {
         return AdminPeriodAnalyticsTO.builder()
                 .current(formattedCurrentSales)
                 .prev(formattedPreviousSales)
+                .data(getRevenueByRegion(startMonth, endMonth))
                 .build();
+    }
+
+    private static final Map<String, String> REGION_MAPPING = Map.ofEntries(
+            Map.entry("서울", "서울"), Map.entry("부산", "부산"), Map.entry("대구", "대구"), Map.entry("인천", "인천"),
+            Map.entry("광주", "광주"), Map.entry("대전", "대전"), Map.entry("울산", "울산"), Map.entry("세종", "세종"),
+            Map.entry("경기", "경기"), Map.entry("충북", "충북"), Map.entry("충남", "충남"), Map.entry("전북", "전북"),
+            Map.entry("전남", "전남"), Map.entry("경북", "경북"), Map.entry("경남", "경남"), Map.entry("강원", "강원"),
+            Map.entry("제주", "제주")
+    );
+
+//    public List<Map<String, Object>> getRevenueByRegion(LocalDateTime startDate, LocalDateTime endDate) {
+    public AdminDataAnalyticsTO getRevenueByRegion(LocalDateTime startDate, LocalDateTime endDate) {
+
+        List<Object[]> rawData = receiptsRepository.findRevenueByAddress(startDate, endDate);
+
+        Map<String, Long> revenueByRegion = rawData.stream()
+                .collect(Collectors.groupingBy(obj -> {
+                    String address = obj[0].toString();
+                    return REGION_MAPPING.entrySet().stream()
+                            .filter(entry -> address.startsWith(entry.getKey()))
+                            .map(Map.Entry::getValue)
+                            .findFirst()
+                            .orElse("기타");
+                }, Collectors.summingLong(obj -> ((BigDecimal) obj[1]).longValue())));
+
+        List<String> labels = new ArrayList<>(revenueByRegion.keySet());
+
+        List<Long> data = labels.stream()
+                .map(revenueByRegion::get)
+                .collect(Collectors.toList());
+
+        return AdminDataAnalyticsTO.builder()
+                .labels(labels)
+                .data(data)
+                .build();
+
+    }
+    public void getCategoryAnalytics(){
+
     }
 
     /** 날짜 범위 리스트 생성 */
