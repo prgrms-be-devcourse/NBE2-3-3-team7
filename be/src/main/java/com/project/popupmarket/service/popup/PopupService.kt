@@ -107,17 +107,16 @@ class PopupService(
     // TODO : 추후 Admin Migration 완료 이후에 'AdminService' 로 이동
     fun findPopupAdminByFilter(
         address: String?, status: ActivateStatus?,
-        title: String?, type: String?,
-        sorting: String?, pageable: Pageable?
+        title: String?, type: String?, pageable: Pageable?
     ): Page<PopupTO> {
         val modelMapper = ModelMapper()
         println(popupJpaRepository.findPopupAdminByFilter(
-            address, status, title, type, sorting, pageable // title 파라미터 추가
+            address, status, title, type, pageable // title 파라미터 추가
         ))
 
         // 필터링된 데이터를 가져옴
         val popupPage = popupJpaRepository.findPopupAdminByFilter(
-            address, status, title, type, sorting, pageable // title 파라미터 추가
+            address, status, title, type, pageable // title 파라미터 추가
         ).map { popup ->
             modelMapper.map(popup, PopupTO::class.java)
         }

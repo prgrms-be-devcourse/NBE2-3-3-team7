@@ -58,16 +58,24 @@ export const imageSlider = () => {
 	}
 }
 
-// function daumPostcode() {
-// 	const postcode = document.getElementById('postcode');
-// 	const addr = document.getElementById('addr');
+export const formattedKorWon = (amount) => {
+    if (isNaN(amount) || amount < 0) return "올바른 금액을 입력하세요";
 
-// 	new daum.Postcode({
-// 		oncomplete: function (data) {
-// 			var roadAddr = data.roadAddress; // 도로명 주소 변수
+    const unit = "만원";
+    const converted = (amount / 10000).toLocaleString(); // 만 단위로 변환
 
-// 			postcode.value = data.zonecode;
-// 			addr.value = roadAddr;
-// 		}
-// 	}).open();
-// }
+    return `${converted}${unit}`;
+}
+
+export const getStatusClass = (status) => {
+	switch (status) {
+	  case "임대 완료": // 예: 활성화된 상태
+		return "text-[#3FB8AF]";
+	  case "결제 완료": // 예: 대기 중 상태
+		return "text-gray-700";
+	  case "환불 완료": // 예: 취소된 상태
+		return "text-red-500";
+	  default:
+		return "text-gray-700"; // 예: 기본 상태
+	}
+  };

@@ -3,6 +3,7 @@ package com.project.popupmarket.repository
 import com.linecorp.kotlinjdsl.dsl.jpql.jpql
 import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
 import com.linecorp.kotlinjdsl.support.spring.data.jpa.extension.createQuery
+import com.project.popupmarket.dto.admin.AdminDashboardTO
 import com.project.popupmarket.dto.payment.AnalyticsTO
 import com.project.popupmarket.dto.payment.RangeDateTO
 import com.project.popupmarket.dto.payment.ReceiptsInfoTO

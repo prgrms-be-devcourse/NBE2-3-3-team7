@@ -46,12 +46,11 @@ class AdminController(
     fun getPopupsByFilter(
         @RequestParam(required = false) address: String?,
         @RequestParam(required = false) status: ActivateStatus?,
-        @RequestParam(required = false) sorting: String?,
         @RequestParam(required = false) title: String?,
         @RequestParam(required = false) type: String?,
         @PageableDefault(size = 20) pageable: Pageable,
     ): ResponseEntity<Page<PopupTO>> {
-        val popupTO = popupService.findPopupAdminByFilter(address, status, title, type, sorting, pageable)
+        val popupTO = popupService.findPopupAdminByFilter(address, status, title, type, pageable)
         return ResponseEntity.ok(popupTO)
     }
 

@@ -53,7 +53,7 @@ class AdminService(
                     amount = receipt.amount,
                     start = receipt.startDate,
                     end = receipt.endDate,
-                    status = receipt.reservationStatus,
+                    status = receipt.reservationStatus.desc,
                     reservedAt = receipt.reservedAt
                 )
 
@@ -71,6 +71,7 @@ class AdminService(
 
         // 거래 내역 데이터 조회 및 변환
         val dashboardData = receiptsRepository.findDashboardsBetween(startDate, endDate)
+        dashboardData.forEach { println(it) }
         val dashboardList = dashboardData.map { obj ->
             AdminDashboardTO(
                 receipts = ReceiptsManageTO(
@@ -78,7 +79,7 @@ class AdminService(
                     amount = (obj[0] as Receipts).amount,
                     start = (obj[0] as Receipts).startDate,
                     end = (obj[0] as Receipts).endDate,
-                    status = (obj[0] as Receipts).reservationStatus,
+                    status = (obj[0] as Receipts).reservationStatus.desc,
                     reservedAt = (obj[0] as Receipts).reservedAt
                 ),
                 customer = obj[1] as String, // Popup 이름

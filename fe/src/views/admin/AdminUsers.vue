@@ -54,7 +54,7 @@ const filteredUsers = computed(() => {
 		<div class="flex justify-between items-center mb-6">
 			<h1 class="text-2xl font-bold text-gray-700">회원 관리</h1>
 			<button @click="openAddModal"
-				class="bg-[#3FB8AF] font-bold text-white px-4 h-full rounded-lg hover:bg-[#2c817c] transition-colors">
+				class="bg-[#3FB8AF] flex font-bold text-white px-4 h-full rounded-lg hover:bg-[#2c817c] transition-colors">
 				관리자 추가
 			</button>
 		</div>

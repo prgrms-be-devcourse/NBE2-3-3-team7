@@ -80,7 +80,6 @@ interface PopupJpaRepository : JpaRepository<Popup, Long> {
         @Param("status") status: ActivateStatus?,
         @Param("title") title: String?,
         @Param("type") type: String?,
-        @Param("sorting") sorting: String?,
         pageable: Pageable?
     ): Page<Popup>
 
