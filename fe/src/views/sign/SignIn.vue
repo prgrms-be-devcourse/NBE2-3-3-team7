@@ -1,15 +1,42 @@
 <script setup>
 import { ref } from 'vue';
-// eslint-disable-next-line no-unused-vars
-const { VITE_BASE_API_URL } = import.meta.env;
+import { useRouter } from 'vue-router';
+import { signinEmail } from '@/services/user/auth/sign.api';
+import { useAuthStore } from '@/store/auth';
 
-const isPasswordVisible = ref(false); // 화면 표시 여부
+const router = useRouter();
+const auth = useAuthStore();
 
-let error = ref(true);
+let error = ref(false);
 const signinChecked = ref(false);
+const isPasswordVisible = ref(false);
 
 const togglePasswordVisibility = () => {
 	isPasswordVisible.value = !isPasswordVisible.value;
+};
+
+const email = ref('');
+const password = ref('');
+let emailTouched = ref(false);
+let passwordTouched = ref(false);
+
+const fetchSignin = async () => {
+	signinChecked.value = true;
+
+	try {
+		const response = await signinEmail({ email: email.value, password: password.value });
+		localStorage.setItem('token', response.accessToken);
+		auth.isLoggedIn = true;
+		router.push('/');
+	} catch (err) {
+		console.error('로그인 오류:', err);
+		error.value = true;
+	}
+};
+
+const googleLoginUrl = `${import.meta.env.VITE_BASE_API_URL}/oauth2/authorization/google`;
+const redirectToGoogleSignin = () => {
+	window.location.href = googleLoginUrl;
 };
 
 </script>
@@ -20,7 +47,7 @@ const togglePasswordVisibility = () => {
 			<img src="../../assets/logo.png" alt="팝업마켓">
 			<div class="flex flex-col items-center mt-14">
 				<div class="min-w-96">
-					<form class="space-y-6">
+					<div class="space-y-6">
 						<div class="flex flex-col">
 							<label for="email" class="ms-2 text-gray-700 font-bold">
 								이메일
@@ -48,14 +75,14 @@ const togglePasswordVisibility = () => {
 							</div>
 						</div>
 						<div>
-							<button type="submit"
-								class="flex w-full justify-center rounded-md bg-[#3FB8AF] px-3 py-1.5 text-sm/6 font-semibold text-white shadow-sm hover:bg-[#2c817c]">Sign
-								in with Email</button>
+							<button @click="fetchSignin"
+								class="flex w-full justify-center rounded-md bg-[#3FB8AF] px-3 py-1.5 text-sm/6 font-semibold text-white shadow-sm hover:bg-[#2c817c]">
+								Sign in with Email</button>
 						</div>
 						<div v-if="error && signinChecked" class="mt-4 text-center text-red-500 text-sm">
 							이메일 또는 비밀번호가 올바르지 않습니다.
 						</div>
-					</form>
+					</div>
 					<div class="mt-4">
 						<div class="relative">
 							<div class="absolute inset-0 flex items-center">
@@ -66,12 +93,12 @@ const togglePasswordVisibility = () => {
 							</div>
 						</div>
 						<div class="mt-4 flex items-center justify-center ">
-							<a href="/oauth2/authorization/google"
+							<button @click="redirectToGoogleSignin"
 								class="h-9 border-gray-300 rounded-md border-2 bg-[#f2f2f2] hover:border-gray-400 transition-colors">
 								<!-- Google Sign-In -->
 								<img src="../../assets/images/logos/google_signin.png" alt="Google"
 									class="object-contain h-full">
-							</a>
+							</button>
 						</div>
 
 						<!-- 회원가입 링크 -->

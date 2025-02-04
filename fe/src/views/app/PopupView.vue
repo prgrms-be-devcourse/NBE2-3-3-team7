@@ -1,14 +1,36 @@
 <script setup>
-import { RouterLink } from 'vue-router';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import KakaoMap from '@/components/common/KakaoMap.vue';
-import { onMounted } from 'vue';
-import { imageSlider } from '@/utils/global.util';
+import { onMounted, ref, computed } from 'vue';
+import { imageSlider, getKorDateRange } from '@/utils/global.util';
+import { popupView } from '@/services/popup/popup.view';
 
-const addr = '서울특별시 강남구 역삼동';
+const route = useRoute();
+const router = useRouter();
+const popupId = route.params.id;
+
+const data = ref({images: [], popup: {}, thumbnail: ""});
 
 onMounted(() => {
+	fetchPopup();
 	imageSlider();
 });
+
+const fetchPopup = async () => {
+	try {
+		const result = await popupView(popupId);
+		data.value = result;
+		console.log(result);
+		if(data.value.popup === undefined) {
+			router.push({ path: '/popup' });
+		}
+	} catch (err) {
+		console.error('API 요청 오류:', err);
+	};
+}
+
+const popup = computed(() => data.value.popup ?? {});
+const images = computed(() => data.value.images ?? []);
 
 </script>
 
@@ -16,8 +38,10 @@ onMounted(() => {
 	<main class="flex-grow flex flex-col items-center">
 		<div class="flex mt-2 max-w-7xl w-full justify-center px-4">
 			<div class="max-w-7xl w-full flex items-center flex-shrink-0">
-				<router-link href="/popup" class="font-bold p-2"><i class="fas fa-angles-left"></i></router-link>
-				<span id="title" class="font-bold text-xl">팝업 스토어 기획 제목</span>
+				<router-link to="/popup" class="font-bold p-2 space-x-2 flex items-center">
+					<i class="fas fa-angles-left"></i>
+					<span id="title" class="font-bold text-xl">{{ popup.title }}</span>
+				</router-link>
 			</div>
 		</div>
 		<section class="flex w-full justify-center">
@@ -28,8 +52,8 @@ onMounted(() => {
 							class="relative border overflow-hidden border-gray-300 rounded-md h-64 md:h-[24rem] lg:h-[36rem] bg-gray-300">
 							<div id="image-container" class="flex w-full transition-transform h-full duration-1000"
 								style="transform: translateX(0%);">
-								<div class="w-full h-full flex-shrink-0"> <!-- v-for -->
-									<img src="" class="mx-auto h-full w-full object-cover" alt="">
+								<div v-for="(image, index) in images" :key="index" class="w-full h-full flex-shrink-0"> <!-- v-for -->
+									<img :src="image" class="mx-auto h-full w-full object-cover" :alt="popup.title">
 								</div>
 							</div>
 							<div class="absolute inset-0 w-full flex items-center justify-between px-4">
@@ -43,61 +67,42 @@ onMounted(() => {
 							</div>
 						</div>
 
-						<!-- TODO -->
 						<div
 							class="flex lg:space-x-4 lg:space-y-0 space-x-0 space-y-4 lg:flex-row flex-col justify-between">
 							<div class="space-y-4 text-sm w-full">
 								<div class="space-y-2">
-									<strong>희망 지역</strong>
-									<p id="target-place"></p>
+									<strong>주요 인프라</strong>
+									<div id="infra-box" class="space-x-2">
+										<span v-for="(infra, index) in popup.infra?.split(',')" :key="index"
+											class="inline-flex items-center rounded-xl bg-white shadow-md px-4 py-2 text-xs text-black font-bold ring-2 ring-inset ring-[#3FB8AF] cursor-default">
+											{{ infra }}
+										</span>
+									</div>
 								</div>
 								<div class="space-y-2">
 									<strong>팝업 유형</strong>
-									<p id="popup-type"></p>
+									<p id="popup-type">{{ popup.type }}</p>
 								</div>
 								<div class="space-y-2">
-									<strong>임대 기간</strong>
-									<p id="rental-date"></p>
-								</div>
-								<div class="space-y-2">
-									<strong>주요 타겟</strong>
-									<p id="target-age"></p>
-								</div>
-								<div class="space-y-2">
-									<strong>면적</strong>
-									<p id="target-area"></p>
+									<strong>팝업 기간</strong>
+									<p id="rental-date">{{ getKorDateRange(popup.startDate, popup.endDate) }}</p>
 								</div>
 								<div class="space-y-2">
 									<strong>팝업 설명</strong>
 									<p id="popup-description">
+										{{ popup.description }}
 									</p>
 								</div>
 								<div class="space-y-2">
-									<strong>임대지 주소</strong>
-									<p id="place-full-address"></p>
+									<strong>팝업 주소</strong>
+									<p id="place-full-address">{{ `[${popup.zipcode}] ${popup.address}, ${popup.addrDetail}` }}</p>
 									<div class="border border-gray-300 rounded-md">
 										<div class="h-80 w-full bg-gray-200 items-center flex justify-center">
-											<KakaoMap :addr="addr" />
+											<KakaoMap :data="popup.address" />2
 										</div>
 									</div>
 								</div>
 							</div>
-
-							<!-- <div
-								class="w-full flex-shrink-0 lg:w-72 border max-h-fit border-gray-300 rounded-md p-4 shadow-md sticky top-4">
-								<div class="text-center font-bold mb-2 pb-2 border-b">입점 요청</div>
-								<div class="text-sm space-y-2 flex flex-col">
-									<div class="bg-white px-4 py-2 flex-shrink-0 border border-gray-300 rounded-md">
-										<label for="my-place" class="font-bold">임대지 목록</label>
-										<select id="my-place" class="w-full px-1">
-										</select>
-									</div>
-								</div>
-								<button onclick="invitation()"
-									class="w-full bg-[#3FB8AF] text-white py-2 rounded-md mt-2 hover:bg-[#2c817c] transition-colors">
-									권유하기
-								</button>
-							</div> -->
 						</div>
 					</div>
 				</div>

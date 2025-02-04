@@ -13,7 +13,8 @@ interface ReceiptsRepository : JpaRepository<Receipts?, String?>, ReceiptsJDslRe
     @Query(
         """SELECT r, customerUser.name, landlordUser.name FROM Receipts r 
         JOIN User customerUser ON r.customerId = customerUser.id 
-        JOIN User landlordUser ON r.rentalLandId = landlordUser.id 
+        JOIN RentalLand land ON r.rentalLandId = land.id 
+        JOIN User landlordUser ON land.landlordId = landlordUser.id
         WHERE r.reservedAt BETWEEN :startDate AND :endDate"""
     )
     fun findDashboardsBetween(

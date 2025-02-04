@@ -1,35 +1,60 @@
 <script setup>
+import { computed } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+
+const router = useRouter();
+const route = useRoute();
+
+const props = defineProps({
+	totalPages: Number,
+	currentPage: Number,
+	url: String,
+});
+
+// TODO: 추후 데이터 많이 넣어보고 테스트 필요
+const displayedPages = computed(() => {
+	if (props.totalPages < 1) return [];
+
+	const startPage = Math.max(1, props.currentPage - 2);
+	const endPage = Math.min(startPage + 4, props.totalPages);
+
+	return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i);
+});
+
+const changePage = (page) => {
+	const newPage = Number(page);
+	if (newPage >= 0 && newPage < props.totalPages) {
+		router.push({ path: props.url, query: { ...route.query, page: newPage } });
+	}
+};
 </script>
 
 <template>
-	<nav id="paging" class="isolate inline-flex border rounded-md shadow-sm" aria-label="Pagination">
-		<button onclick="setPage(${startPage})"
-			class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 hover:bg-gray-100">
-			<span class="sr-only">이전</span>
-			<svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" data-slot="icon">
-				<path fill-rule="evenodd"
-					d="M11.78 5.22a.75.75 0 0 1 0 1.06L8.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06l-4.25-4.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z"
-					clip-rule="evenodd" />
-			</svg>
+	<nav v-if="totalPages > 0" id="paging" class="isolate inline-flex border border-gray-300 rounded-md shadow-sm"
+		aria-label="Pagination">
+		<button @click="changePage(currentPage - 1)" :disabled="currentPage <= 0"
+			class="inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 hover:bg-gray-100 disabled:opacity-50">
+			<div class="size-5">
+				<i class="fas fa-angle-left"></i>
+			</div>
 		</button>
-		<span v-if="startPage > 1"
-			class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-[#3FB8AF]">
-			{{ }}
-		</span>
-		<button v-else
-			class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100">
-			{{ }}
-		</button>
-		<button onclick="setPage(${nextGroupPage})"
-			class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 hover:bg-gray-100">
-			<span class="sr-only">다음</span>
-			<svg class="size-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" data-slot="icon">
-				<path fill-rule="evenodd"
-					d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z"
-					clip-rule="evenodd" />
-			</svg>
+
+		<template v-for="page in displayedPages" :key="page">
+			<span v-if="currentPage === (page - 1)"
+				class="inline-flex items-center px-4 py-2 text-sm font-semibold bg-[#3FB8AF] text-white">
+				{{ page }}
+			</span>
+			<button v-else @click="changePage(page - 1)"
+				class="inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100">
+				{{ page }}
+			</button>
+		</template>
+
+		<button @click="changePage(currentPage + 1)" :disabled="currentPage >= totalPages - 1"
+			class="inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 hover:bg-gray-100 disabled:opacity-50">
+			<div class="size-5">
+				<i class="fas fa-angle-right"></i>
+			</div>
 		</button>
 	</nav>
 </template>
-
-<style scoped></style>

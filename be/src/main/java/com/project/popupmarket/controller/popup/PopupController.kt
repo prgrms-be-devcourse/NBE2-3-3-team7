@@ -1,11 +1,11 @@
 package com.project.popupmarket.controller.popup
 
-import com.project.popupmarket.repository.PopupJpaRepository
 import com.project.popupmarket.service.popup.PopupService
 import io.swagger.v3.oas.annotations.Operation
 import org.springframework.http.ResponseEntity
 import com.project.popupmarket.dto.popup.PopupRespTO
 import com.project.popupmarket.dto.popup.PopupTO
+import com.project.popupmarket.enums.ActivateStatus
 import com.project.popupmarket.util.UserContextUtil
 import lombok.RequiredArgsConstructor
 import org.springframework.data.domain.Page
@@ -29,17 +29,17 @@ class PopupController (
     @GetMapping("/popup/list")
     @Operation(summary = "조건에 해당하는 팝업 리스트")
     fun rentalListPagination( // 팝업 리스트 페이지 9개 + 필터링 + 페이지네이션
-        @RequestParam(required = false) targetLocation: String?,
+        @RequestParam(required = false) location: String?,
         @RequestParam(required = false) type: String?,
-        @RequestParam(required = false) targetAgeGroup: String?,
+        @RequestParam(required = false) ageGroup: String?,
         @RequestParam(required = false) startDate: LocalDate?,  // 시작일
         @RequestParam(required = false) endDate: LocalDate?,  // 종료일
         @RequestParam(required = false) sorting: String?,  // 정렬 기준
         @RequestParam(defaultValue = "0") page: Int
-    ): Page<PopupRespTO> {
+    ): ResponseEntity<Page<PopupRespTO>> {
         val pageable: Pageable = PageRequest.of(page, 9)
 
-        return popupService.findFilterWithPagination(targetLocation, type, targetAgeGroup, startDate, endDate, sorting, pageable)
+        return ResponseEntity.ok(popupService.findFilterWithPagination(location, type, ageGroup, startDate, endDate, sorting, pageable))
     }
 
     // [ READ ] - 2
@@ -55,10 +55,10 @@ class PopupController (
     // [ Read ] - 3 : 관리 중인 팝업 목록
     @GetMapping("/popup/user")
     @Operation(summary = "사용자 팝업 리스트")
-    fun userPopupList(): List<PopupRespTO> {
-        val userSeq = userContextUtil.userId ?: throw IllegalStateException("사용자 ID가 필요합니다")
-
-        return popupService.findPopupByUserId(userSeq)
+    fun userPopupList( @RequestParam(defaultValue = "0") page: Int ): Page<PopupRespTO> {
+        val userId = userContextUtil.userId ?: throw IllegalStateException("사용자 ID가 필요합니다")
+        val pageable: Pageable = PageRequest.of(page, 10)
+        return popupService.findPopupByUserId(userId, pageable)
     }
 
     // [ CREATE ]
@@ -100,7 +100,7 @@ class PopupController (
     @Operation(summary = "팝업 상태 변경 -> [ACTIVE, INACTIVE]")
     fun updatePopupStatus(
         @PathVariable("id") id: Long,
-        @RequestBody status: String
+        @RequestBody status: ActivateStatus
     ): ResponseEntity<Void> {
         popupService.updatePopupStatus(id, status)
         return ResponseEntity.ok().build()

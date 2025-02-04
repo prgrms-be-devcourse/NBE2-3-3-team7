@@ -1,7 +1,6 @@
 package com.project.popupmarket.repository
 
 import com.project.popupmarket.entity.Popup
-import com.project.popupmarket.entity.RentalLand
 import com.project.popupmarket.enums.ActivateStatus
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
@@ -18,13 +17,17 @@ interface PopupJpaRepository : JpaRepository<Popup, Long> {
     @Query(value = "SELECT po FROM Popup po ORDER BY po.registeredAt DESC LIMIT 10")
     fun findWithLimit(): List<Popup>
 
-    @Query(
-        ("SELECT po " +
-                "FROM Popup po " +
-                "WHERE po.customerId = :userId " +
-                "ORDER BY po.registeredAt DESC")
+    @Query(value = "SELECT po FROM Popup po WHERE po.customerId = :customerId ORDER BY po.registeredAt DESC LIMIT 10")
+    fun findByCustomerIdWithLimit(@Param("customerId") customerId: Long): List<Popup>
+
+    @Query("""
+        SELECT po 
+        FROM Popup po 
+        WHERE po.customerId = :userId 
+        ORDER BY po.registeredAt DESC
+    """
     )
-    fun findPopupByUserId(@Param("userId") userId: Long): List<Popup>
+    fun findPopupByUserIdWithPagination(@Param("userId") userId: Long, pageable: Pageable?): Page<Popup>
 
     @Query(
         ("SELECT po " +
@@ -34,35 +37,35 @@ interface PopupJpaRepository : JpaRepository<Popup, Long> {
     )
     fun findActivatedPopupByUserId(
         @Param("userId") userId: Long,
-        @Param("popupId") popupId: Long
+        @Param("popupId") popupId: Long,
     ): List<Popup>
 
-    @Query("""
-    SELECT po 
-    FROM Popup po 
-    WHERE po.status = 'ACTIVE' 
-    AND (:targetLocation IS NULL OR po.address LIKE CONCAT('%', :targetLocation, '%')) 
-    AND (:type IS NULL OR po.type LIKE CONCAT('%', :type, '%')) 
-    AND (:targetAgeGroup IS NULL OR po.ageGroup = :targetAgeGroup) 
-    AND po.startDate BETWEEN :startDate AND :endDate 
-    AND po.endDate BETWEEN :startDate AND :endDate 
-    ORDER BY 
-    CASE 
-        WHEN :sorting = 'registered_desc' THEN po.registeredAt 
-        WHEN :sorting = 'registered_asc' THEN po.registeredAt 
-        WHEN :sorting = 'area_desc' THEN po.zipcode 
-        WHEN :sorting = 'area_asc' THEN po.zipcode 
-        ELSE po.registeredAt 
-    END DESC
-""")
+    @Query(
+        """
+        SELECT po 
+        FROM Popup po 
+        WHERE po.status = 'ACTIVE' 
+        AND (:location IS NULL OR po.address LIKE CONCAT('%', :location, '%')) 
+        AND (:type IS NULL OR po.type LIKE CONCAT('%', :type, '%')) 
+        AND (:ageGroup IS NULL OR po.ageGroup = :ageGroup) 
+        AND (:startDate IS NULL OR :endDate IS NULL OR po.startDate BETWEEN :startDate AND :endDate) 
+        AND (:startDate IS NULL OR :endDate IS NULL OR po.endDate BETWEEN :startDate AND :endDate)
+        ORDER BY 
+        CASE WHEN :sorting = 'registered_desc' THEN po.registeredAt END DESC,
+        CASE WHEN :sorting = 'registered_asc' THEN po.registeredAt END ASC,
+        CASE WHEN :sorting = 'area_desc' THEN po.zipcode END DESC,
+        CASE WHEN :sorting = 'area_asc' THEN po.zipcode END ASC,
+        CASE WHEN :sorting IS NULL OR :sorting = '' THEN po.registeredAt END DESC
+        """
+    )
     fun findFilteredWithPagination(
-        @Param("targetLocation") targetLocation: String?,
+        @Param("location") location: String?,
         @Param("type") type: String?,
-        @Param("targetAgeGroup") targetAgeGroup: String?,
+        @Param("ageGroup") ageGroup: String?,
         @Param("startDate") startDate: LocalDate?,
         @Param("endDate") endDate: LocalDate?,
         @Param("sorting") sorting: String?,
-        pageable: Pageable?
+        pageable: Pageable?,
     ): Page<Popup>
 
     @Query(
@@ -77,7 +80,6 @@ interface PopupJpaRepository : JpaRepository<Popup, Long> {
         @Param("status") status: ActivateStatus?,
         @Param("title") title: String?,
         @Param("type") type: String?,
-        @Param("sorting") sorting: String?,
         pageable: Pageable?
     ): Page<Popup>
 
@@ -97,5 +99,5 @@ interface PopupJpaRepository : JpaRepository<Popup, Long> {
 
     @Modifying
     @Query("UPDATE Popup p SET p.status = :status WHERE p.id = :id")
-    fun updateStatusById(@Param("id") id: Long, @Param("status") status: String)
+    fun updateStatusById(@Param("id") id: Long, @Param("status") status: ActivateStatus)
 }

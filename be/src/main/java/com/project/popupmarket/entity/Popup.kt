@@ -11,46 +11,49 @@ import java.time.LocalDateTime
 class Popup(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long = 0,
+    val id: Long? = null,
 
     @Column(name = "customer_id", nullable = false)
-    var customerId: Long = 0,
+    var customerId: Long? = null,
 
     @Column(nullable = false)
-    var type: String = "",
+    var type: String? = null,
 
     @Column(nullable = false)
-    var title: String = "",
+    var title: String? = null,
 
     @Column(name = "zipcode", length = 5, nullable = false)
-    var zipcode: String = "",
+    var zipcode: String? = null,
 
     @Column(name = "address", nullable = false)
-    var address: String = "",
+    var address: String? = null,
 
     @Column(name = "addr_detail", nullable = false)
-    var addrDetail: String = "",
+    var addrDetail: String? = null,
 
     @Lob
     @Column(columnDefinition = "TEXT", nullable = false)
-    var description: String = "",
+    var description: String? = null,
+
+    @Column(name = "infra", nullable = false)
+    var infra: String? = null,
 
     @Column(name = "start_date", nullable = false)
-    var startDate: LocalDate = LocalDate.now(),
+    var startDate: LocalDate? = null,
 
     @Column(name = "end_date", nullable = false)
-    var endDate: LocalDate = LocalDate.now().plusDays(1),
+    var endDate: LocalDate? = null,
 
     @Enumerated(EnumType.STRING)
     @Column(name = "age_group", nullable = false)
-    var ageGroup: AgeGroup = AgeGroup.TWENTIES,
+    var ageGroup: AgeGroup? = null,
 
     @Column(name = "registered_at", nullable = false, updatable = false)
     var registeredAt: LocalDateTime = LocalDateTime.now(),
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    var status: ActivateStatus = ActivateStatus.ACTIVE
+    var status: ActivateStatus = ActivateStatus.ACTIVE,
 )
 {
     // 기본 생성자
@@ -65,7 +68,7 @@ class Popup(
         description = "",
         startDate = LocalDate.now(),
         endDate = LocalDate.now().plusDays(1),
-        ageGroup = AgeGroup.TWENTIES,
+        ageGroup = null,
         registeredAt = LocalDateTime.now(),
         status = ActivateStatus.ACTIVE
     )

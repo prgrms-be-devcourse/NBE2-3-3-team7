@@ -5,7 +5,9 @@ import com.project.popupmarket.service.land.RentalLandService
 import com.project.popupmarket.service.receipts.PaymentService
 import com.project.popupmarket.util.UserContextUtil
 import io.swagger.v3.oas.annotations.Operation
-import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDate
@@ -21,27 +23,30 @@ class PaymentController(
     @GetMapping("/payment")
     @Operation(summary = "임대지 및 예약자 정보 조회")
     fun reservationInfo(
-        @RequestParam landId: Long,
+        @RequestParam land: Long,
         @RequestParam start: LocalDate,
         @RequestParam end: LocalDate
     ): ResponseEntity<ReservationInfoResponse> {
         val reservation = ReservationTO(
             customerId = userContextUtil.userId ?: throw IllegalStateException("사용자 ID가 필요합니다"),
-            landId = landId,
+            landId = land,
             start = start,
             end = end
         )
 
-        val resp = paymentService.getPaymentInfo(reservation)
-        return ResponseEntity.ok(resp)
+        return ResponseEntity.ok(paymentService.getPaymentInfo(reservation))
     }
 
     @PostMapping("/payment")
     @Operation(summary = "임시 결제 내역 추가")
-    fun payment(@RequestBody receipt: ReceiptsTO): ResponseEntity<Void> {
+    fun payment(@RequestBody request: StagingRequest): ResponseEntity<Void> {
         val customerId = userContextUtil.userId
-        receipt.customerId = customerId ?: throw IllegalStateException("사용자 ID가 필요합니다")
-        paymentService.insertStagingPayment(receipt)
+
+        if (request.customerId != customerId) {
+            throw IllegalStateException("사용자 정보가 인증되지 않았습니다.")
+        }
+
+        paymentService.insertStagingPayment(request)
         return ResponseEntity.ok().build()
     }
 
@@ -54,27 +59,34 @@ class PaymentController(
 
     @DeleteMapping("/payment/fail")
     @Operation(summary = "결제 실패, 임시 결제 내역 삭제")
-    fun paymentFail(@RequestBody receipt: ReceiptsTO): ResponseEntity<String> {
-        paymentService.deleteStagingPayment(receipt)
+    fun paymentFail(@RequestBody request: PaymentFailRequest): ResponseEntity<String> {
+        paymentService.deleteStagingPayment(request.orderId)
         return ResponseEntity.ok("success")
     }
 
     @GetMapping("/receipt")
     @Operation(summary = "사용자 결제 내역 리스트 조회")
-    fun receipt(): ResponseEntity<List<ReceiptsInfoTO>> {
+    fun receipt(@RequestParam(defaultValue = "0") page: Int): ResponseEntity<Page<ReceiptsInfoTO>> {
         val userId = userContextUtil.userId ?: throw IllegalStateException("사용자 ID가 필요합니다")
-        return ResponseEntity.ok(paymentService.getReceiptsInfoByCustomerId(userId))
+        val pageable: Pageable = PageRequest.of(page, 10)
+
+        return ResponseEntity.ok(paymentService.getReceiptsInfoByCustomerId(userId, pageable))
     }
 
     @GetMapping("/reservation/{landId}")
     @Operation(summary = "임대지 예약 리스트 조회")
-    fun reservation(@PathVariable landId: Long): ResponseEntity<ReservationResponse> {
-        val landTitle = rentalLandService.findById(landId).title
-        val reservations = paymentService.getReceiptsInfoByLandId(landId)
+    fun reservation(@PathVariable landId: Long, @RequestParam(defaultValue = "0") page: Int): ResponseEntity<ReservationResponse> {
+
+        val pageable: Pageable = PageRequest.of(page, 10)
+
+        val landTitle = rentalLandService.findById(landId).title!!
+
+        val reservations = paymentService.getReceiptsInfoByLandId(landId, pageable)
+
 
         return ResponseEntity.ok(
             ReservationResponse(
-                landTitle = landTitle.toString(),
+                landTitle = landTitle,
                 reservation = reservations
             )
         )

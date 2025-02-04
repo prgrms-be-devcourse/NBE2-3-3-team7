@@ -1,39 +1,35 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, } from 'vue';
 import { useRouter } from 'vue-router';
-import { usePriceSliderStore } from '../../../store/price.slider';
-import { useAreaSliderStore } from '../../../store/area.slider';
-import { initFlatpickr, initPriceSlider, initAreaSlider } from '../../../utils/init.plugin';
+import { useLandFilterStore } from '@/store/land.filter';
+import { initFlatpickr, initPriceSlider, initAreaSlider } from '@/utils/init.plugin';
 
 const router = useRouter();
+const filterStore = useLandFilterStore();
 
-const priceSliderStore = usePriceSliderStore()
-const areaSliderStore = useAreaSliderStore()
-
-const minPrice = ref(priceSliderStore.min);
-const maxPrice = ref(priceSliderStore.max);
-
-const minArea = ref(areaSliderStore.min);
-const maxArea = ref(areaSliderStore.max);
+filterStore.resetFilters();
 
 onMounted(() => {
 	initFlatpickr();
-	initPriceSlider(minPrice, maxPrice, priceSliderStore);
-	initAreaSlider(minArea, maxArea, areaSliderStore);
+	filterStore.resetFilters();
+	initPriceSlider(filterStore);
+	initAreaSlider(filterStore);
 });
 
 const findLand = () => {
 	const loc = document.getElementById('location');
-	const period = document.getElementById('date-range').value.split(' ~ ');
+
+	filterStore.setPeriod(document.getElementById('date-range').value.split(' ~ ')); // ✅ 기간 설정
+	filterStore.setLocation(loc.value || "");
 
 	const params = {
-		minArea: minArea.value || minArea.value === 0 ? minArea.value : undefined,
-		maxArea: maxArea.value || maxArea.value === 0 ? maxArea.value : undefined,
-		location: loc.value || undefined,
-		minPrice: minPrice.value || minPrice.value === 0 ? minPrice.value : undefined,
-		maxPrice: maxPrice.value || maxPrice.value === 0 ? maxPrice.value : undefined,
-		start: period[0] || undefined,
-		end: period[1] || undefined,
+		minArea: filterStore.minArea ?? undefined,
+		maxArea: filterStore.maxArea ?? undefined,
+		location: filterStore.location || undefined,
+		minPrice: filterStore.minPrice ?? undefined,
+		maxPrice: filterStore.maxPrice ?? undefined,
+		start: filterStore.start || undefined,
+		end: filterStore.end || undefined,
 	};
 
 	// eslint-disable-next-line no-unused-vars
@@ -87,7 +83,7 @@ const findLand = () => {
 		</div>
 		<div class="bg-white min-w-60 border px-4 border-gray-300 rounded-md p-2">
 			<label for="date-range" class="block font-bold">임대 기간</label>
-			<input type="text" id="date-range" placeholder="기간을 선택하세요." class="w-full">
+			<input type="text" id="date-range" v-model="filterStore.period" placeholder="기간을 선택하세요." class="w-full">
 		</div>
 
 		<button @click="findLand"

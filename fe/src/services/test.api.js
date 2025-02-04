@@ -1,8 +1,12 @@
-import { jsonRequest } from './api';
+import { jsonRequest } from '@/services/api';
 
-const testApi = async () => {
+export const testApi = async () => {
 	const response = await jsonRequest('/test/data', 'GET');
-	return response.data;
-}
 
-export default { testApi };
+	// 응답 데이터가 유효한지 확인
+	if (!response || !response.data) {
+		throw new Error('API 응답 데이터가 유효하지 않습니다.');
+	}
+
+	return response.data;
+};

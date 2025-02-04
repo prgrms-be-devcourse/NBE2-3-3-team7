@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSignupStore } from '@/store/signup';
+import { signupEmail, signupSocial } from '@/services/user/auth/sign.api';
 import defaultProfile from '@/assets/images/default/default_profile.png';
 
 const router = useRouter();
@@ -24,10 +25,17 @@ const telTouched = ref(false);
 const telChecked = ref(false);
 const telExists = ref(false);
 
+const setDefaultFile = async () => {
+    const response = await fetch(defaultProfile);
+    const blob = await response.blob();
+    selectedFile.value = new File([blob], "default_profile.png", { type: blob.type });
+};
+
 onMounted(() => {
 	if (signupStore.role === null) {
 		router.push('/signup/role');
 	}
+	setDefaultFile();
 });
 
 const uploadImage = () => {
@@ -60,18 +68,17 @@ const handleFileChange = (event) => {
 	}
 };
 
-
-const telError = computed(() => {
-	const regex = /^\d{3}-\d{3,4}-\d{4}$/;
-	return !regex.test(tel.value);
-});
-
 const canProceed = computed(() => !telError.value && !telExists.value && telChecked.value && !brandExists.value && brandChecked.value && name.value);
 
 const resetBrandCheck = () => {
 	brandExists.value = false;
 	brandChecked.value = false;
 };
+
+const telError = computed(() => {
+	const regex = /^\d{3}-\d{3,4}-\d{4}$/;
+	return !regex.test(tel.value);
+});
 
 const resetAndFormattedTel = (e) => {
 	let inputValue = e.target.value;
@@ -91,7 +98,7 @@ const resetAndFormattedTel = (e) => {
 	} else {
 		filteredValue = filteredValue.replace(/(\d{3})(\d{4})(\d{1,4})/, '$1-$2-$3');
 	}
-	
+
 	tel.value = filteredValue;
 	telExists.value = false;
 	telChecked.value = false;
@@ -117,10 +124,53 @@ const checkTel = () => {
 	telChecked.value = true;
 };
 
-const proceedToNextPage = () => {
-	signupStore.setName(name.value);
-	router.push('/signup/success');
+const proceedToNextPage = async () => {
+	try {
+		const formData = new FormData();
+		let data = {};
+		let result;
+
+		if (selectedFile.value) {
+			formData.append("profileImage", selectedFile.value);
+		}
+
+		if (signupStore.social) {
+			data = {
+				uuid: signupStore.uuid,
+				name: name.value,
+				brand: brand.value,
+				tel: tel.value,
+				businessId: signupStore.business,
+				role: signupStore.role,
+			};
+
+			formData.append("data", new Blob([JSON.stringify(data)], { type: "application/json" }));
+			result = await signupSocial(formData);
+		} else {
+			data = {
+				email: signupStore.email,
+				password: signupStore.password,
+				name: name.value,
+				brand: brand.value,
+				tel: tel.value,
+				businessId: signupStore.business,
+				role: signupStore.role,
+			};
+
+			formData.append("data", new Blob([JSON.stringify(data)], { type: "application/json" }));
+			result = await signupEmail(formData);
+		}
+
+		if (result?.success) {
+			router.push('/signup/success');
+		} else {
+			console.error('회원가입 실패:', result?.message || '알 수 없는 오류 발생');
+		}
+	} catch (err) {
+		console.error('API 요청 오류:', err);
+	}
 };
+
 </script>
 
 <template>
@@ -161,7 +211,8 @@ const proceedToNextPage = () => {
 						</div>
 					</div>
 					<div class="flex flex-col">
-						<label for="name" class="ms-2 text-gray-700 font-bold">이름<span class="ms-2 text-left text-red-500 text-sm">*</span></label>
+						<label for="name" class="ms-2 text-gray-700 font-bold">이름<span
+								class="ms-2 text-left text-red-500 text-sm">*</span></label>
 						<div class="flex w-96 border-2 border-gray-300 p-2 mt-2 space-x-2 rounded-md">
 							<input type="text" id="name" v-model="name" required
 								class="h-12 p-2 flex-1 focus-visible:outline-none focus-visible:border-[#3FB8AF] border-2 border-white transition-colors"
@@ -170,7 +221,8 @@ const proceedToNextPage = () => {
 					</div>
 					<div class="flex flex-col">
 						<label for="brand" class="ms-2 text-gray-700 font-bold">
-							{{ signupStore.isCustomer ? "닉네임" : "상호명" }}<span class="ms-2 text-left text-red-500 text-sm">*</span>
+							{{ signupStore.isCustomer ? "닉네임" : "상호명" }}<span
+								class="ms-2 text-left text-red-500 text-sm">*</span>
 						</label>
 						<div class="flex w-96 border-2 border-gray-300 p-2 mt-2 space-x-2 rounded-md">
 							<input type="text" id="brand" @blur="brandTouched = true" @input="resetBrandCheck"
@@ -180,17 +232,16 @@ const proceedToNextPage = () => {
 							<button @click="checkBrand" :disabled="!brand"
 								class="h-12 border p-2 bg-[#3FB8AF] hover:bg-[#2c817c] disabled:bg-gray-300 text-white font-bold transition-colors rounded-md">확인</button>
 						</div>
-						<span v-if="brandChecked &&  brandExists"
-							class="ms-2 text-left text-red-500 text-sm">
+						<span v-if="brandChecked && brandExists" class="ms-2 text-left text-red-500 text-sm">
 							이미 사용 중인 {{ signupStore.isCustomer ? "닉네임" : "상호명" }}입니다.
 						</span>
-						<span v-if="brandChecked && !brandExists"
-							class="ms-2 text-left text-blue-500 text-sm">
+						<span v-if="brandChecked && !brandExists" class="ms-2 text-left text-blue-500 text-sm">
 							사용이 가능한 {{ signupStore.isCustomer ? "닉네임" : "상호명" }}입니다.
 						</span>
 					</div>
 					<div class="flex flex-col">
-						<label for="tel" class="ms-2 text-gray-700 font-bold">전화번호<span class="ms-2 text-left text-red-500 text-sm">*</span></label>
+						<label for="tel" class="ms-2 text-gray-700 font-bold">전화번호<span
+								class="ms-2 text-left text-red-500 text-sm">*</span></label>
 						<div class="flex w-96 border-2 border-gray-300 p-2 mt-2 space-x-2 rounded-md">
 							<input type="text" id="tel" @blur="telTouched = true" @input="resetAndFormattedTel"
 								v-model="tel" required maxlength="13"

@@ -1,5 +1,33 @@
 <script setup>
-import { RouterLink } from 'vue-router';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
+import { paymentSuccess } from '@/services/payment/payment.api';
+import { onMounted } from 'vue';
+
+const route = useRoute();
+const router = useRouter();
+
+const orderId = route.query.orderId;
+const paymentKey = route.query.paymentKey;
+const totalAmount = route.query.amount;
+
+onMounted(async () => {
+	await success();
+});
+
+const success = async () => {
+	try {
+		const data = {
+			orderId,
+			paymentKey,
+			totalAmount,
+		}
+		await paymentSuccess(data);
+	} catch (err) {
+		console.error(err);
+		router.push('/payment/failure');
+	}
+};
+
 </script>
 
 <template>

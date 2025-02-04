@@ -3,7 +3,8 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { initSingleFlatpickr } from '@/utils/init.plugin';
 import { useSignupStore } from '@/store/signup';
-import { validateBusinessman } from '@/services/businessman.api'
+import { findEmail, findBusinessId } from '@/services/user/auth/sign.api';
+import { validateBusinessman } from '@/services/common/businessman.api'
 
 const router = useRouter();
 
@@ -44,7 +45,19 @@ const resetBusinessCheck = () => {
 
 const handleBusinessIdInput = (event) => {
 	const inputValue = event.target.value;
-	const filteredValue = inputValue.replace(/\D/g, "");
+	let filteredValue = inputValue.replace(/\D/g, "");
+
+	if (filteredValue.length > 10) {
+		filteredValue = filteredValue.slice(0, 10);
+	}
+
+	if (filteredValue.length <= 3) {
+		filteredValue = filteredValue.replace(/(\d{1,3})/, '$1');
+	} else if (inputValue.length <= 6) {
+		filteredValue = filteredValue.replace(/(\d{3})(\d{1,2})/, '$1-$2');
+	} else if (filteredValue.length <= 10) {
+		filteredValue = filteredValue.replace(/(\d{3})(\d{2})(\d{1,5})/, '$1-$2-$3');
+	}
 
 	businessId.value = filteredValue;
 	event.target.value = filteredValue;
@@ -55,15 +68,17 @@ const handleBusinessIdInput = (event) => {
 const checkBusiness = async () => {
 	try {
 		// 1단계: 사업자 등록 번호 유효성 검사 (API 요청)
-		const isValid = await validateBusinessId(); // 예제: 유효성 검사
+		const isValid = await validateBusinessId(); // 유효성 검사사
 		if (!isValid) {
 			businessError.value = true;
 			businessChecked.value = true;
 			return;
 		}
+		console.log("사업자 등록 번호 유효성 검사 완료");
 
 		// 2단계: 서비스 내 중복 여부 확인 (API 요청)
-		const isExisting = await checkBusinessIdExists(businessId.value); // 예제: 중복 검사
+		const isExisting = await checkBusinessIdExists(businessId.value); // 중복 검사
+		console.log(isExisting)
 		businessExists.value = isExisting;
 		businessError.value = false;
 		businessChecked.value = true;
@@ -73,11 +88,10 @@ const checkBusiness = async () => {
 	}
 };
 
-// Mock: 사업자 등록 번호 유효성 검사 API
 const validateBusinessId = async () => {
 	const request = [
 		{
-			"b_no": businessId.value,
+			"b_no": businessId.value.replaceAll('-', ''),
 			"start_dt": businessDate.value.replaceAll('-', ''),
 			"p_nm": businessName.value,
 		}
@@ -85,15 +99,17 @@ const validateBusinessId = async () => {
 
 	const response = await validateBusinessman(request)
 
-
 	return response.data[0].valid === '01';
 };
 
-// 서비스 중복 여부 확인 API
-const checkBusinessIdExists = async (id) => {
-	// TODO -> API로 대체
-	const existingIds = ["1234567890"];
-	return new Promise((resolve) => setTimeout(() => resolve(existingIds.includes(id)), 100));
+const checkBusinessIdExists = async (businessId) => {
+    try {
+        const response = await findBusinessId({ businessId });
+        return response;
+    } catch (err) {
+        console.error('API 요청 오류:', err);
+        return null; // 에러 발생 시 null 반환
+    }
 };
 
 const togglePasswordVisibility = () => {
@@ -104,10 +120,17 @@ const togglePasswordOkVisibility = () => {
 	isPasswordOkVisible.value = !isPasswordOkVisible.value;
 };
 
-const checkEmail = () => {
+const checkEmail = async () => {
 	if (!emailError.value) {
-		const existingEmails = ["test@example.com", "user@email.com"]; // API로 변경 예정
-		emailExists.value = existingEmails.includes(email.value);
+		try {
+			const data = {
+				"email" : email.value
+			}
+			const result = await findEmail(data);
+			emailExists.value = result;
+		} catch (err) {
+			console.error('API 요청 오류:', err);
+		}
 		emailChecked.value = true;
 	}
 };
@@ -132,11 +155,22 @@ const passwordOkError = computed(() => {
 });
 
 const canProceed = computed(() => {
-	return (!passwordOkError.value && !passwordError.value && !emailError.value && !emailExists.value && emailChecked.value && businessChecked.value && !businessError.value && !businessExists.value) ||
+	return (signupStore.isLandlord && !passwordOkError.value && !passwordError.value && !emailError.value && !emailExists.value && emailChecked.value && businessChecked.value && !businessError.value && !businessExists.value) ||
+		(signupStore.isCustomer && !passwordOkError.value && !passwordError.value && !emailError.value && !emailExists.value && emailChecked.value) ||
 		(signupStore.social && businessChecked.value && !businessError.value && !businessExists.value);
 });
 
 const proceedToNextPage = () => {
+	if (signupStore.social) {
+		signupStore.setBusiness(businessId.value);
+	} else if (signupStore.isLandlord) {
+		signupStore.setEmail(email.value);
+		signupStore.setPassword(password.value);
+		signupStore.setBusiness(businessId.value);
+	} else {
+		signupStore.setEmail(email.value);
+		signupStore.setPassword(password.value);
+	}
 	router.push('/signup/info');
 };
 </script>
@@ -169,7 +203,7 @@ const proceedToNextPage = () => {
 								<input type="text" @input="resetBusinessCheck" v-model="businessName" required
 									class="h-12 w-40 flex p-2 flex-1 focus-visible:outline-none focus-visible:border-[#3FB8AF] border-2 border-white transition-colors"
 									placeholder="사업자 이름" />
-								<input type="text" @input="handleBusinessIdInput" v-model="businessId" maxlength="10"
+								<input type="text" @input="handleBusinessIdInput" v-model="businessId" maxlength="12"
 									required
 									class="h-12 w-40 flex p-2 flex-1 focus-visible:outline-none focus-visible:border-[#3FB8AF] border-2 border-white transition-colors"
 									placeholder="사업자 등록 번호" />
@@ -200,7 +234,7 @@ const proceedToNextPage = () => {
 								class="ms-2 text-left text-red-500 text-sm">*</span></label>
 						<div class="flex w-96 border-2 border-gray-300 p-2 mt-2 space-x-2 rounded-md">
 							<input type="email" id="email" @blur="emailTouched = true" @input="resetEmailCheck"
-								v-model="email" required
+								v-model="email" required autocomplete="off"
 								class="h-12 p-2 flex-1 focus-visible:outline-none focus-visible:border-[#3FB8AF] border-2 border-white transition-colors"
 								placeholder="이메일 주소 입력" />
 							<button @click="checkEmail" :disabled="emailError || !email"
@@ -218,12 +252,12 @@ const proceedToNextPage = () => {
 							이미 사용 중인 이메일입니다.
 						</span>
 					</div>
-					<div v-if="!signupStore.social" class="flex flex-col">
+					<form v-if="!signupStore.social" class="flex flex-col">
 						<label for="password" class="ms-2 text-gray-700 font-bold">비밀번호<span
 								class="ms-2 text-left text-red-500 text-sm">*</span></label>
 						<div class="flex w-96 border-2 border-gray-300 p-2 mt-2 space-x-2 rounded-md">
 							<input :type="isPasswordVisible ? 'text' : 'password'" v-model="password" required
-								id="password" @blur="passwordTouched = true"
+								id="password" @blur="passwordTouched = true" autocomplete="off"
 								class="h-12 p-2 flex-1 focus-visible:outline-[#3FB8AF]"
 								placeholder="8자리 이상 영문, 숫자, 특수문자 포함" />
 							<div class="h-12 p-2 flex items-center justify-center transition-colors rounded-md w-10 text-gray-500 cursor-pointer"
@@ -238,7 +272,7 @@ const proceedToNextPage = () => {
 						<div class="flex w-96 border-2 border-gray-300 p-2 mt-2 space-x-2 rounded-md">
 							<input :type="isPasswordOkVisible ? 'text' : 'password'" @blur="passwordOkTouched = true"
 								v-model="passwordOk" class="h-12 p-2 flex-1 focus-visible:outline-[#3FB8AF]" required
-								placeholder="비밀번호 확인" />
+								placeholder="비밀번호 확인" autocomplete="off" />
 							<div class="h-12 p-2 flex items-center justify-center transition-colors rounded-md w-10 text-gray-500 cursor-pointer"
 								@click="togglePasswordOkVisibility">
 								<i v-if="isPasswordOkVisible" class="fas fa-eye"></i>
@@ -248,7 +282,7 @@ const proceedToNextPage = () => {
 						<span v-if="passwordOkError && passwordOkTouched" class="ms-2 text-left text-red-500 text-sm">
 							{{ /* v-else 에러 반환 */ "비밀번호가 일치하지 않습니다." }}
 						</span>
-					</div>
+					</form>
 				</div>
 
 				<div>

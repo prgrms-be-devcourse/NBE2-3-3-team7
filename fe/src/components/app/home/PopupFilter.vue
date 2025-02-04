@@ -1,31 +1,29 @@
 <script setup>
 import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { initFlatpickr } from '../../../utils/init.plugin';
+import { initFlatpickr } from '@/utils/init.plugin';
+import { usePopupFilterStore } from '@/store/popup.filter';
 
 const router = useRouter();
+const filterStore = usePopupFilterStore();
 
 onMounted(() => {
 	initFlatpickr();
+	filterStore.resetFilters();
 });
 
 const findPopup = () => {
-	const loc = document.getElementById('location');
-	const type = document.getElementById('type');
-	const age = document.getElementById('age');
-	const period = document.getElementById('date-range').value.split(' ~ ');
-
 	const params = {
-		location: loc.value || undefined,
-		type: type.value || undefined,
-		age: age.value || undefined,
-		start: period[0] || undefined,
-		end: period[1] || undefined,
+		location: filterStore.location || undefined,
+		type: filterStore.type || undefined,
+		age: filterStore.age || undefined,
+		start: filterStore.start || undefined,
+		end: filterStore.end || undefined,
+		sort: filterStore.sort || undefined,
 	};
 
 	// eslint-disable-next-line no-unused-vars
 	const query = Object.fromEntries(Object.entries(params).filter(([_, v]) => v !== undefined));
-
 	router.push({ path: '/popup', query });
 };
 </script>
@@ -34,8 +32,8 @@ const findPopup = () => {
 	<div id="filter-box" class="flex flex-col min-w-80 lg:flex-row lg:space-y-0 lg:space-x-4 space-y-4">
 		<div class="flex space-x-4">
 			<div class="bg-white px-4 py-2 flex-grow border border-gray-300 rounded-md">
-				<label for="age" class="font-bold">연령대</label>
-				<select id="age" class="w-full px-1">
+				<label class="font-bold">연령대</label>
+				<select v-model="filterStore.age" class="w-full px-1">
 					<option value="">전체</option>
 					<option value="10대">10대</option>
 					<option value="20대">20대</option>
@@ -46,8 +44,8 @@ const findPopup = () => {
 				</select>
 			</div>
 			<div class="bg-white px-4 py-2 flex-shrink-0 border border-gray-300 rounded-md">
-				<label for="location" class="font-bold">지역</label>
-				<select id="location" class="w-full px-1">
+				<label class="font-bold">지역</label>
+				<select v-model="filterStore.location" class="w-full px-1">
 					<option value="">전체</option>
 					<option value="서울">서울</option>
 					<option value="부산">부산</option>
@@ -70,8 +68,8 @@ const findPopup = () => {
 			</div>
 		</div>
 		<div class="bg-white px-4 py-2 border border-gray-300 rounded-md">
-			<label for="type" class="font-bold">유형</label>
-			<select id="type" class="w-full px-1">
+			<label class="font-bold">유형</label>
+			<select v-model="filterStore.type" class="w-full px-1">
 				<option value="">전체</option>
 				<option value="식품">식품</option>
 				<option value="화장품">화장품</option>
@@ -92,7 +90,7 @@ const findPopup = () => {
 		</div>
 		<div class="bg-white min-w-60 border px-4 border-gray-300 rounded-md p-2">
 			<label for="date-range" class="font-bold">임대 기간</label>
-			<input type="text" id="date-range" placeholder="기간을 선택하세요." class="w-full">
+			<input type="text" id="date-range" v-model="filterStore.period" placeholder="기간을 선택하세요." class="w-full">
 		</div>
 
 		<button @click="findPopup"

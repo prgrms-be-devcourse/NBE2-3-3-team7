@@ -1,8 +1,12 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import DeleteModal from "@/components/admin/popup/DeleteModal.vue";
 import BasePaging from "@/components/common/BasePaging.vue";
 import DetailRow from "@/components/admin/popup/DetailRow.vue";
+import { adminPopups } from '@/services/admin/admin.api'
+import { useRoute } from "vue-router";
+
+const route = useRoute();
 
 const isDeleteModalOpen = ref(false);
 const selectedUser = ref(null);
@@ -10,10 +14,7 @@ const selectedStatus = ref("");
 const selectedLocation = ref("");
 const selectedType = ref("");
 
-const rows = ref([
-	{ id: 1, title: "포켓몬 팝업", location: "서울", type: "식품", status: "활성화", date: "2025-01-15" },
-	{ id: 2, title: "디지몬 팝업", location: "부산", type: "화장품", status: "비활성화", date: "2025-01-10" },
-]);
+const rows = ref([]);
 
 const expandedRow = ref(null);
 
@@ -21,6 +22,28 @@ const toggleRow = (id) => {
 	expandedRow.value = expandedRow.value === id ? null : id;
 };
 
+
+watch(
+	() => route.query,
+	() => {
+		fetchPopupList();
+	},
+	{ deep: true }
+);
+
+onMounted(async () => {
+	await fetchPopupList()
+})
+
+const fetchPopupList = async () => {
+	try {
+		const result = await adminPopups(); // route.query를 그대로 전달
+		rows.value = result;
+		console.log(result)
+	} catch (err) {
+		console.error('API 요청 오류:', err);
+	}
+};
 
 
 const deleteUser = () => {
@@ -84,7 +107,8 @@ computed(() => {
 						</th>
 						<th class="p-2">
 							<div class="flex items-center justify-center">
-								<select v-model="selectedType" class="border border-gray-300 rounded-lg p-1 text-sm focus:outline-none focus:ring focus:ring-[#3FB8AF]">
+								<select v-model="selectedType"
+									class="border border-gray-300 rounded-lg p-1 text-sm focus:outline-none focus:ring focus:ring-[#3FB8AF]">
 									<option value="">전체</option>
 									<option value="식품">식품</option>
 									<option value="화장품">화장품</option>
@@ -119,17 +143,17 @@ computed(() => {
 					</tr>
 				</thead>
 				<tbody>
-					<template v-for="row in rows" :key="row.id">
+					<template v-for="(row, index) in rows.content" :key="index">
 						<tr class="border-t border-gray-300 hover:bg-gray-100 cursor-pointer"
 							@click="toggleRow(row.id)">
 							<td class="p-2">{{ row.id }}</td>
 							<td class="p-2">{{ row.title }}</td>
-							<td class="p-2">{{ row.location }}</td>
+							<td class="p-2">{{ row.address.slice(0, 2) }}</td>
 							<td class="p-2">{{ row.type }}</td>
 							<td class="p-2">
 								<span
-									:class="[row.status === '활성화' ? 'bg-[#3FB8AF]' : 'bg-red-500', 'text-white text-xs px-2 py-1 rounded']">
-									{{ row.status }}
+									:class="[row.status === 'ACTIVE' ? 'bg-[#3FB8AF]' : 'bg-red-500', 'text-white text-xs px-2 py-1 rounded']">
+									{{ row.status === 'ACTIVE' ? '활성화' : '비활성화' }}
 								</span>
 							</td>
 							<td class="p-2">{{ row.date }}</td>
@@ -145,7 +169,14 @@ computed(() => {
 					</template>
 				</tbody>
 			</table>
-			<BasePaging class="justify-center items-center flex" />
+
+			<section class="w-full px-4" aria-label="pagination">
+				<div
+					class="flex items-center flex-col space-y-2 justify-center border-t border-gray-200 bg-white px-4 py-3">
+					<BasePaging v-if="rows.page?.totalPages > 0" :totalPages="rows.page?.totalPages"
+						:currentPage="rows.page?.number" url="/admin/popup" />
+				</div>
+			</section>
 			<DeleteModal v-if="isDeleteModalOpen" :user="selectedUser" @close="isDeleteModalOpen = false"
 				@delete="deleteUser" />
 		</div>

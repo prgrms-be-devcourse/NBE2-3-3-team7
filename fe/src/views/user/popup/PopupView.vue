@@ -1,18 +1,51 @@
 <script setup>
-import { RouterLink } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
+import { popupView, popupDelete } from '@/services/user/user.popup';
+import { onMounted, ref } from 'vue';
+import NoItem from '@/components/common/NoItem.vue'
+import RouterBack from '@/components/common/RouterBack.vue';
+
+
+const route = useRoute();
+const router = useRouter();
+const popupId = route.params.id;
+const data = ref({});
+
+onMounted(async () => {
+	await fetchPopupView();
+})
+
+const fetchPopupView = async () => {
+	try {
+		const result = await popupView(popupId); // route.query를 그대로 전달
+		data.value = result;
+	} catch (err) {
+		console.error('API 요청 오류:', err);
+		router.push('/user/popup');
+	}
+};
+
+const deletePopupStore = async () => {
+	try {
+		await popupDelete(popupId);
+		alert('팝업이 삭제되었습니다.')
+		router.push('/user/popup');
+	} catch (err) {
+		console.log(err);
+	}
+}
 </script>
 
 <template>
 	<main class="flex-grow flex flex-col items-center">
+		<RouterBack link="/user/popup" text="123456">
+			<button @click="deletePopupStore()"
+				class="p-2 text-red-500 rounded-lg font-bold text-sm hover:text-red-700 transition-colors">
+				팝업 삭제
+			</button>
+		</RouterBack>
 		<section class="flex mt-4 w-full justify-center">
-			<form id="edit-popup-form" class="max-w-4xl px-4 flex flex-col w-full bg-white"
-				enctype="multipart/form-data">
-				<div class="flex justify-between pb-2 border-b border-gray-300">
-					<router-link to="/user/popup" class="font-bold p-2"><i class="fas fa-angles-left"></i> 목록</router-link>
-					<button onclick="deletePopupStore()"
-						class="p-2 text-red-500 rounded-lg font-bold text-sm hover:text-red-700 transition-colors">팝업
-						삭제</button>
-				</div>
+			<form class="max-w-4xl px-4 flex flex-col w-full bg-white" enctype="multipart/form-data">
 				<div class="flex sm:space-x-2 space-x-0 sm:flex-row flex-col">
 					<div class="space-y-4 flex flex-col flex-shrink-0 justify-center items-center p-8">
 						<img id="thumbnail-image" src="#" class="w-40 h-40 border border-gray-300 object-cover bg-white"
@@ -94,6 +127,9 @@ import { RouterLink } from 'vue-router';
 						<span class="text-xs font-bold flex-1">이미지 파일명.png</span>
 						<button type="button" onclick="removeImage()">&#10060;</button>
 						</li> -->
+						<li v-if="data.images?.length < 1">
+							<NoItem message="이미지를 추가해주세요." />
+						</li>
 					</ul>
 					<div class="flex justify-between border-t pt-2 border-gray-300">
 						<span class="text-xs font-bold flex-1">이미지 하나당 2MB 이하로 업로드 해주세요.</span>

@@ -19,17 +19,21 @@ import org.springframework.security.config.annotation.web.configurers.ExceptionH
 import org.springframework.security.config.annotation.web.configurers.HttpBasicConfigurer
 import org.springframework.security.config.annotation.web.configurers.SessionManagementConfigurer
 import org.springframework.security.config.http.SessionCreationPolicy
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.HttpStatusEntryPoint
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher
+import org.springframework.web.cors.CorsConfiguration
+import org.springframework.web.cors.CorsConfigurationSource
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 
 @Configuration
 class WebOAuthSecurityConfig(
     private val oAuth2UserCustomService: OAuth2UserCustomService,
     private val tokenProvider: TokenProvider,
-    private val userDetailService: UserDetailService
+    private val userDetailService: UserDetailService,
 ) {
 
     // WebSecurityCustomizer 빈 등록
@@ -43,6 +47,19 @@ class WebOAuthSecurityConfig(
         }
     }
 
+    @Bean
+    fun corsConfigurationSource(): CorsConfigurationSource {
+        val configuration = CorsConfiguration()
+        configuration.allowedOrigins = listOf("http://localhost:5173")
+        configuration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
+        configuration.allowedHeaders = listOf("*")
+        configuration.allowCredentials = true
+
+        val source = UrlBasedCorsConfigurationSource()
+        source.registerCorsConfiguration("/**", configuration)
+        return source
+    }
+
     // SecurityFilterChain 빈 등록
     @Bean
     @Throws(Exception::class)
@@ -51,8 +68,8 @@ class WebOAuthSecurityConfig(
             .csrf { obj: CsrfConfigurer<HttpSecurity> -> obj.disable() }
             .httpBasic { obj: HttpBasicConfigurer<HttpSecurity> -> obj.disable() }
             .sessionManagement { session ->
-            session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // 세션 필요시 생성
-        }
+                session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // 세션 필요시 생성
+            }
 
         // JWT 필터 추가
         http.addFilterBefore(tokenAuthenticationFilter(), UsernamePasswordAuthenticationFilter::class.java)
@@ -106,7 +123,6 @@ class WebOAuthSecurityConfig(
         // OAuth2 로그인 설정
         http.oauth2Login { oauth2 ->
             oauth2
-                .loginPage("/login")
                 .authorizationEndpoint { authorization ->
                     authorization.authorizationRequestRepository(
                         oAuth2AuthorizationRequestBasedOnCookieRepository()
@@ -156,7 +172,7 @@ class WebOAuthSecurityConfig(
     @Throws(Exception::class)
     fun authenticationManager(
         http: HttpSecurity,
-        bCryptPasswordEncoder: BCryptPasswordEncoder
+        bCryptPasswordEncoder: BCryptPasswordEncoder,
     ): AuthenticationManager {
         val authenticationManagerBuilder = http.getSharedObject(
             AuthenticationManagerBuilder::class.java

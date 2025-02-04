@@ -1,32 +1,32 @@
 <script setup>
 import { onMounted, ref } from 'vue';
-import LandCard from '@/components/app/land/LandCard.vue';
-import PopupCard from '@/components/app/popup/PopupCard.vue';
+import LandCard from '@/components/app/item/LandCard.vue';
+import PopupCard from '@/components/app/item/PopupCard.vue';
 import LandFilter from '@/components/app/home/LandFilter.vue';
 import PopupFilter from '@/components/app/home/PopupFilter.vue';
+import { homeItem } from '@/services/home/home.api';
+import { useRoute } from 'vue-router';
 
-const land = [
-	{ title: '임대지 1', image: 'https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?ixlib=rb-1.2.1&amp;ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;auto=format&amp;fit=crop&amp;w=320&amp;h=160&amp;q=80', price: '100,000원', location: '서울', link: '/land/1' },
-	{ title: '임대지 2', image: 'https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?ixlib=rb-1.2.1&amp;ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;auto=format&amp;fit=crop&amp;w=320&amp;h=160&amp;q=80', price: '200,000원', location: '부산', link: '/land/2' },
-	{ title: '임대지 3', image: 'https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?ixlib=rb-1.2.1&amp;ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;auto=format&amp;fit=crop&amp;w=320&amp;h=160&amp;q=80', price: '200,000원', location: '부산', link: '/land/3' },
-	{ title: '임대지 4', image: 'https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?ixlib=rb-1.2.1&amp;ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;auto=format&amp;fit=crop&amp;w=320&amp;h=160&amp;q=80', price: '200,000원', location: '부산', link: '/land/4' },
-	{ title: '임대지 5', image: 'https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?ixlib=rb-1.2.1&amp;ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;auto=format&amp;fit=crop&amp;w=320&amp;h=160&amp;q=80', price: '200,000원', location: '부산', link: '/land/5' },
-	{ title: '임대지 6', image: 'https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?ixlib=rb-1.2.1&amp;ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;auto=format&amp;fit=crop&amp;w=320&amp;h=160&amp;q=80', price: '200,000원', location: '부산', link: '/land/6' },
-	{ title: '임대지 7', image: 'https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?ixlib=rb-1.2.1&amp;ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;auto=format&amp;fit=crop&amp;w=320&amp;h=160&amp;q=80', price: '200,000원', location: '부산', link: '/land/7' },
-	{ title: '임대지 8', image: 'https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?ixlib=rb-1.2.1&amp;ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;auto=format&amp;fit=crop&amp;w=320&amp;h=160&amp;q=80', price: '200,000원', location: '부산', link: '/land/8' },
-	{ title: '임대지 9', image: 'https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?ixlib=rb-1.2.1&amp;ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;auto=format&amp;fit=crop&amp;w=320&amp;h=160&amp;q=80', price: '200,000원', location: '부산', link: '/land/9' },
-];
+const route = useRoute();
 
-const popup = [
-	{ title: '팝업스토어 1', image: 'https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?ixlib=rb-1.2.1&amp;ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;auto=format&amp;fit=crop&amp;w=320&amp;h=160&amp;q=80', type: '아이돌', location: '대구', link: '/popup/1' },
-	{ title: '팝업스토어 2', image: 'https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?ixlib=rb-1.2.1&amp;ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;auto=format&amp;fit=crop&amp;w=320&amp;h=160&amp;q=80', type: '만화', location: '인천', link: '/popup/2' }
-];
+const data = ref({});
 
 const selected = ref('land');
 
 onMounted(() => {
 	slideImage();
+	fetchHomeItem();
+
 });
+
+const fetchHomeItem = async () => {
+	try {
+		const result = await homeItem(route.query); // route.query를 그대로 전달
+		data.value = result;
+	} catch (err) {
+		console.error('API 요청 오류:', err);
+	}
+};
 
 function slideImage() {
 	const slides = document.getElementById('slide-container');
@@ -144,22 +144,22 @@ function slideImage() {
 
 		<section class="mt-10 w-full px-4">
 			<div class="border-2 max-w-7xl  mx-auto rounded-2xl ">
-				<h3 class="pl-8 mt-4 text-2xl">추천 임대지</h3>
-				<div class="relative rounded-xl overflow-auto my-4"><!-- Snap Point -->
-					<div id="place-box" class="relative w-full flex gap-6 snap-x list_scrollbar overflow-x-auto pb-6">
-						<LandCard v-for="(item, index) in land" :key="index" :image="item.image" :title="item.title"
-							:price="item.price" :location="item.location" :link="item.link" />
+				<h3 class="pl-8 mt-4 text-2xl">신규 임대지</h3>
+				<div class="m-4"><!-- Snap Point -->
+					<div class="w-full flex gap-6 snap-x list_scrollbar overflow-x-auto pb-6">
+						<LandCard v-for="(item, index) in data.land" :key="index" :item="item.rentalLand"
+						:thumbnail="item.thumbnail" class="w-1/3 flex-shrink-0 snap-center"/>
 					</div>
 				</div>
 			</div>
 		</section>
 		<section class="mt-10 w-full px-4">
 			<div class="border-2 max-w-7xl mx-auto rounded-2xl ">
-				<h3 class="pl-8 mt-4 text-2xl">추천 팝업스토어</h3>
-				<div class="relative rounded-xl overflow-auto my-4"><!-- Snap Point -->
-					<div id="popup-box" class="relative w-full flex gap-6 snap-x list_scrollbar overflow-x-auto pb-6">
-						<PopupCard v-for="(item, index) in popup" :key="index" :image="item.image" :title="item.title"
-							:type="item.type" :location="item.location" :link="item.link" />
+				<h3 class="pl-8 mt-4 text-2xl">신규 팝업 스토어</h3>
+				<div class="m-4"><!-- Snap Point -->
+					<div v-if="data.popup" class="w-full flex gap-6 snap-x list_scrollbar overflow-x-auto pb-6">
+						<PopupCard v-for="(item, index) in data.popup" :key="index" :item="item.popup"
+						:thumbnail="item.thumbnail" class="w-1/3 flex-shrink-0 snap-center"/>
 					</div>
 				</div>
 			</div>

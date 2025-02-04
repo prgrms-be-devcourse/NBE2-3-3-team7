@@ -1,5 +1,16 @@
 <script setup>
-import { RouterLink } from 'vue-router';
+import { onMounted } from 'vue';
+import { RouterLink, useRoute } from 'vue-router';
+import { paymentFail } from '@/services/payment/payment.api';
+
+const route = useRoute();
+
+const orderId = route.query.orderId;
+
+onMounted(async () => {
+	await paymentFail(orderId);
+});
+
 </script>
 
 <template>

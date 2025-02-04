@@ -1,31 +1,52 @@
 <script setup>
-import { RouterLink } from 'vue-router';
+import { computed } from "vue";
+import { RouterLink } from "vue-router";
+import ToggleSwitch from "@/components/common/ToggleSwitch.vue";
 
-defineProps({
+const props = defineProps({
 	item: {
 		type: Object,
 		required: true,
 	},
-})
+	thumbnail: {
+		type: String,
+		required: true,
+	},
+});
+
+const emit = defineEmits(["update-status"]);
+
+// ✅ `item.status`를 Boolean 값으로 변환하여 `ToggleSwitch`에 전달
+const itemStatus = computed({
+	get: () => props.item.status === "ACTIVE",
+	set: (newValue) => {
+		emit("update-status", { id: props.item.id, status: newValue ? "ACTIVE" : "INACTIVE" });
+	}
+});
 </script>
 
 <template>
-	<router-link :to="`/user/land/${item.id}`" class="w-full h-full relative flex flex-col items-center justify-center">
-		<span
-			class="absolute top-1 right-2 bg-white bg-opacity-75 text-gray-900 text-base font-bold px-2 py-1 rounded mb-2">
-			{{ item.location }}
-		</span>
-		<div class="relative w-full h-3/5 flex items-center justify-center bg-gray-100">
-			<img :src="item.image" alt="이미지" class="max-w-full max-h-full object-contain " />
-		</div>
-		<div class="w-full flex flex-col justify-between p-1 bg-white h-1/8 rounded-b-lg pt-4">
-			<h3 class="text-base text-left truncate">{{ item.title }}</h3>
-			<router-link :to="`/user/land/${item.id}/reservation`"
-				class="text-green-700 hover:underline cursor-pointer">
-				예약 현황 보기 ( {{ item.status }} )
-			</router-link>
-		</div>
-	</router-link>
-</template>
+	<div class="group drop-shadow-lg relative p-4 border m-2 rounded-lg border-gray-300 cursor-default">
+		<router-link :to="`/user/land/${item.id}`"
+			class="mt-2 block relative overflow-hidden rounded-lg border border-gray-400 cursor-pointer">
+			<img class="w-full h-44 object-contain bg-gray-100" :src="thumbnail" :alt="item.title">
+		</router-link>
 
-<style scoped></style>
+		<div class="space-y-2 mt-4">
+			<div class="flex justify-between">
+				<h3 class="text-lg font-semibold text-gray-900">{{ item.title }}</h3>
+				<ToggleSwitch v-model:status="itemStatus" :id="item.id" type="land" />
+			</div>
+			<div class="flex justify-between">
+				<router-link :to="`/user/land/${item.id}/reservation`" class="hover:underline text-[#3FB8AF] hover:text-[#2c817c] transition-colors">
+					예약 현황 보기
+				</router-link>
+				<h3 class="font-semibold text-gray-900">{{ `${item.price.toLocaleString()}원 / 일` }}</h3>
+			</div>
+			<div class="flex justify-between">
+				<span>{{ item.address }}</span>
+				<span>{{ `${item.area}평` }}</span>
+			</div>
+		</div>
+	</div>
+</template>

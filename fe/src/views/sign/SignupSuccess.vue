@@ -1,16 +1,12 @@
 <script setup>
 import { onMounted } from 'vue';
-import { useRouter, RouterLink } from 'vue-router';
+import { RouterLink } from 'vue-router';
 import { useSignupStore } from '@/store/signup';
-
-const router = useRouter();
 
 const signupStore = useSignupStore();
 
 onMounted(() => {
-	if (signupStore.name === null) {
-		router.push('/');
-	}
+	signupStore.resetState();
 });
 </script>
 
@@ -39,7 +35,7 @@ onMounted(() => {
 					<i class="fas fa-user-check"></i>
 				</div>
 				<div class="text-center font-bold text-2xl">
-					<h3>{{ signupStore.name }}님의 회원가입을 축하합니다.</h3>
+					<h3>회원가입을 축하합니다.</h3>
 					<h3>다양한 서비스를 이용해보세요!</h3>
 				</div>
 				<div class="flex flex-col space-y-4">

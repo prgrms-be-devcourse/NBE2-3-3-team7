@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 
 const routes = [
 	{ path: '/test', component: () => import('../views/HelloWorld.vue') },
+	{ path: '/auth/callback', component: () => import('../views/sign/AuthCallback.vue') },
 	{
 		path: '/admin', component: () => import('../layout/AdminLayout.vue'),
 		children: [
@@ -35,7 +36,7 @@ const routes = [
 			{ path: '/user/land/:id', component: () => import('../views/user/land/LandView.vue') },
 			{ path: '/user/land/add', component: () => import('../views/user/land/LandAdd.vue') },
 			{ path: '/user/land/:id/reservation', component: () => import('../views/user/land/ReservationList.vue') },
-			{ path: '/user/stats', component: () => import('../views/user/land/MyLandStats.vue') },
+			{ path: '/user/stats', component: () => import('../views/user/land/LandStats.vue') },
 			{ path: '/user/popup', component: () => import('../views/user/popup/PopupList.vue') },
 			{ path: '/user/popup/:id', component: () => import('../views/user/popup/PopupView.vue') },
 			{ path: '/user/popup/add', component: () => import('../views/user/popup/PopupAdd.vue') },

@@ -1,55 +1,47 @@
 <script setup>
-import { onMounted, ref } from 'vue';
-import LandCard from '@/components/app/land/LandCard.vue';
-import BasePaging from '@/components/common/BasePaging.vue';
-import { useAreaSliderStore } from '@/store/area.slider';
-import { usePriceSliderStore } from '@/store/price.slider';
-import { useRouter } from 'vue-router';
+import { onMounted, ref, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import { useLandFilterStore } from '@/store/land.filter';
 import { initFlatpickr, initPriceSlider, initAreaSlider } from '@/utils/init.plugin';
+import { landList } from '@/services/land/land.list';
+import BasePaging from '@/components/common/BasePaging.vue';
+import LandCard from '@/components/app/item/LandCard.vue';
+import NoItem from '@/components/common/NoItem.vue';
 
 const router = useRouter();
+const route = useRoute();
+const filterStore = useLandFilterStore();
 
-const priceSliderStore = usePriceSliderStore()
-const areaSliderStore = useAreaSliderStore()
+const land = ref({ content: [], page: { totalPages: 0, number: 0 } });
 
-const minPrice = ref(priceSliderStore.min);
-const maxPrice = ref(priceSliderStore.max);
-
-const minArea = ref(areaSliderStore.min);
-const maxArea = ref(areaSliderStore.max);
 
 onMounted(() => {
 	initFlatpickr();
-	initPriceSlider(minPrice, maxPrice, priceSliderStore);
-	initAreaSlider(minArea, maxArea, areaSliderStore);
+
+	filterStore.setLocation(route.query.location || "");
+	filterStore.setSort(route.query.sort || "");
+	filterStore.setPeriod([route.query.start || "", route.query.end || ""]);
+	filterStore.minPrice = route.query.minPrice ? Number(route.query.minPrice) : filterStore.minPrice;
+	filterStore.maxPrice = route.query.maxPrice ? Number(route.query.maxPrice) : filterStore.maxPrice;
+	filterStore.minArea = route.query.minArea ? Number(route.query.minArea) : filterStore.minArea;
+	filterStore.maxArea = route.query.maxArea ? Number(route.query.maxArea) : filterStore.maxArea;
+	filterStore.setSort(route.query.sort || "");
+
+	initPriceSlider(filterStore);
+	initAreaSlider(filterStore);
+	fetchLandList();
 });
 
-const land = [
-	{ title: '임대지 1', image: 'https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?ixlib=rb-1.2.1&amp;ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;auto=format&amp;fit=crop&amp;w=320&amp;h=160&amp;q=80', price: '100,000원', location: '서울', link: '/land/1', start: '2025-01-02', end: '2025-01-12' },
-	{ title: '임대지 2', image: 'https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?ixlib=rb-1.2.1&amp;ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;auto=format&amp;fit=crop&amp;w=320&amp;h=160&amp;q=80', price: '200,000원', location: '부산', link: '/land/2', start: '2025-01-02', end: '2025-01-12' },
-	{ title: '임대지 3', image: 'https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?ixlib=rb-1.2.1&amp;ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;auto=format&amp;fit=crop&amp;w=320&amp;h=160&amp;q=80', price: '200,000원', location: '부산', link: '/land/3', start: '2025-01-02', end: '2025-01-12' },
-	{ title: '임대지 4', image: 'https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?ixlib=rb-1.2.1&amp;ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;auto=format&amp;fit=crop&amp;w=320&amp;h=160&amp;q=80', price: '200,000원', location: '부산', link: '/land/4', start: '2025-01-02', end: '2025-01-12' },
-	{ title: '임대지 5', image: 'https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?ixlib=rb-1.2.1&amp;ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;auto=format&amp;fit=crop&amp;w=320&amp;h=160&amp;q=80', price: '200,000원', location: '부산', link: '/land/5', start: '2025-01-02', end: '2025-01-12' },
-	{ title: '임대지 6', image: 'https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?ixlib=rb-1.2.1&amp;ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;auto=format&amp;fit=crop&amp;w=320&amp;h=160&amp;q=80', price: '200,000원', location: '부산', link: '/land/6', start: '2025-01-02', end: '2025-01-12' },
-	{ title: '임대지 7', image: 'https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?ixlib=rb-1.2.1&amp;ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;auto=format&amp;fit=crop&amp;w=320&amp;h=160&amp;q=80', price: '200,000원', location: '부산', link: '/land/7', start: '2025-01-02', end: '2025-01-12' },
-	{ title: '임대지 8', image: 'https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?ixlib=rb-1.2.1&amp;ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;auto=format&amp;fit=crop&amp;w=320&amp;h=160&amp;q=80', price: '200,000원', location: '부산', link: '/land/8', start: '2025-01-02', end: '2025-01-12' },
-	{ title: '임대지 9', image: 'https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?ixlib=rb-1.2.1&amp;ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&amp;auto=format&amp;fit=crop&amp;w=320&amp;h=160&amp;q=80', price: '200,000원', location: '부산', link: '/land/9', start: '2025-01-02', end: '2025-01-12' },
-];
-
 const findLand = () => {
-	const loc = document.getElementById('location');
-	const period = document.getElementById('date-range').value.split(' ~ ');
-	const sort = document.getElementById('sort');
-
 	const params = {
-		minArea: minArea.value || minArea.value === 0 ? minArea.value : undefined,
-		maxArea: maxArea.value || maxArea.value === 0 ? maxArea.value : undefined,
-		location: loc.value || undefined,
-		minPrice: minPrice.value || minPrice.value === 0 ? minPrice.value : undefined,
-		maxPrice: maxPrice.value || maxPrice.value === 0 ? maxPrice.value : undefined,
-		start: period[0] || undefined,
-		end: period[1] || undefined,
-		sort: sort.value || undefined,
+		minArea: filterStore.minArea ?? undefined,
+		maxArea: filterStore.maxArea ?? undefined,
+		location: filterStore.location || undefined,
+		minPrice: filterStore.minPrice ?? undefined,
+		maxPrice: filterStore.maxPrice ?? undefined,
+		start: filterStore.start || undefined,
+		end: filterStore.end || undefined,
+		sort: filterStore.sort || undefined,
 	};
 
 	// eslint-disable-next-line no-unused-vars
@@ -58,6 +50,22 @@ const findLand = () => {
 	router.push({ path: '/land', query });
 };
 
+watch(
+	() => route.query,
+	() => {
+		fetchLandList();
+	},
+	{ deep: true }
+);
+
+const fetchLandList = async () => {
+	try {
+		const result = await landList(route.query);
+		land.value = result;
+	} catch (err) {
+		console.error(err);
+	}
+};
 </script>
 
 <template>
@@ -72,10 +80,17 @@ const findLand = () => {
 				class="flex w-full max-w-7xl space-x-0 md:space-x-2 border-t-2 border-b-2 border-[#3FB8AF] mx-auto py-2 justify-between items-center">
 				<div class="flex flex-col md:flex-row space-y-2 space-x-0 md:space-y-0 md:space-x-2">
 					<div class="flex space-y-2 space-x-0 xl:space-y-0 xl:space-x-2 flex-col xl:flex-row">
+						<div class="bg-white px-4 py-2 min-w-60 flex-shrink-0 rounded-md border border-gray-300">
+							<div class="mb-2 flex justify-between space-x-2">
+								<h3 class="font-bold">면적</h3>
+								<label id="area-range" class="text-center"></label>
+							</div>
+							<div id="area-slider" class="w-full"></div>
+						</div>
 						<div
 							class="bg-white px-4 py-2 flex-col flex-shrink-0 border flex space-x-2 border-gray-300 rounded-md">
-							<label for="location" class="font-bold">지역</label>
-							<select id="location" class="w-full px-1">
+							<label class="font-bold">지역</label>
+							<select v-model="filterStore.location" class="w-full px-1">
 								<option value="">전체</option>
 								<option value="서울">서울</option>
 								<option value="부산">부산</option>
@@ -96,6 +111,9 @@ const findLand = () => {
 								<option value="제주">제주</option>
 							</select>
 						</div>
+					</div>
+
+					<div class="flex space-y-2 space-x-0 xl:space-y-0 xl:space-x-2 flex-col xl:flex-row">
 						<div class="bg-white px-4 py-2 rounded-md border border-gray-300 min-w-60">
 							<div class="mb-2 flex justify-between">
 								<h3 class="font-bold">금액</h3>
@@ -103,26 +121,17 @@ const findLand = () => {
 							</div>
 							<div id="price-slider" class="w-full"></div>
 						</div>
-					</div>
-
-					<div class="flex space-y-2 space-x-0 xl:space-y-0 xl:space-x-2 flex-col xl:flex-row">
 						<div class="bg-white min-w-60 border px-4 border-gray-300 rounded-md p-2">
 							<label for="date-range" class="font-bold">임대 기간</label>
-							<input type="text" id="date-range" placeholder="기간을 선택하세요." class="w-full">
-						</div>
-						<div class="bg-white px-4 py-2 min-w-60 flex-shrink-0 rounded-md border border-gray-300">
-							<div class="mb-2 flex justify-between space-x-2">
-								<h3 class="font-bold">면적</h3>
-								<label id="area-range" class="text-center"></label>
-							</div>
-							<div id="area-slider" class="w-full"></div>
+							<input type="text" id="date-range" v-model="filterStore.period" placeholder="기간을 선택하세요."
+								class="w-full">
 						</div>
 					</div>
 				</div>
 				<div class="flex flex-shrink-0 space-x-0 xl:space-x-2 flex-col xl:flex-row h-full justify-between">
 					<div class="bg-white px-4 py-2 flex-col border flex space-x-2 border-gray-300 rounded-md">
-						<label for="sort" class="font-bold">정렬</label>
-						<select id="sort" class="w-full px-1">
+						<label class="font-bold">정렬</label>
+						<select v-model="filterStore.sort" class="w-full px-1">
 							<option value="">정렬</option>
 							<option value="registered_desc">최신순</option>
 							<option value="registered_asc">등록순</option>
@@ -140,19 +149,19 @@ const findLand = () => {
 			</div>
 		</section>
 
-		<section class="mt-4 w-full px-4">
-			<div class="max-w-7xl mx-auto">
-				<div id="item-box" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-					<LandCard v-for="(item, index) in land" :key="index" :link="item.link" :image="item.image"
-						:title="item.title" :price="item.price" :location="item.location" :start="item.start"
-						:end="item.end" />
+		<section class="w-full px-4">
+			<div class="max-w-7xl mx-auto my-6">
+				<div v-if="land.content.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+					<LandCard v-for="(item, index) in land.content" :key="index" :item="item.rentalLand"
+						:thumbnail="item.thumbnail" />
 				</div>
+				<NoItem v-else message="조회된 임대지가 없습니다." />
 			</div>
 		</section>
-		<section class="mt-10 w-full px-4" aria-label="pagination">
+		<section class="w-full px-4" aria-label="pagination">
 			<div
 				class="flex items-center flex-col space-y-2 justify-center border-t border-gray-200 bg-white px-4 py-3">
-				<BasePaging />
+				<BasePaging v-if="land.page.totalPages > 0" :totalPages="land.page.totalPages" :currentPage="land.page.number" url="/land"/>
 			</div>
 		</section>
 	</main>
